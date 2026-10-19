@@ -13,6 +13,7 @@ import { compareDiagramSnapshots, revisionDate, snapshotFromDiagram, timestampKe
 import { buildRevisionTimeline, filterTimeline, type TimelineFilter } from '../lib/revisionTimeline';
 import { buildConceptHistory, describeConceptChanges, filterConceptHistory, type ConceptEventFilter } from '../lib/conceptHistory';
 import { useAuth } from '../lib/useAuth';
+import { isValidNodeTitle, MAX_NODE_TITLE_CHARACTERS, MAX_NODE_TITLE_WORDS, nodeTitleWordCount } from '../lib/nodeTitle';
 import { ConceptNode } from '../components/ConceptNode';
 import { blankReference, MAX_NODE_REFERENCES, relationKeys, relationLabels, safeReferenceUrl, serializeAcademicGraph } from '../lib/academicGraph';
 import { isReferencePersisted, snapshotPersistedReferences } from '../lib/academicReferenceView';
@@ -284,6 +285,9 @@ function EditorContent() {
     if (title.trim().length < 3 || title.trim().length > 100) {
       setError('El título debe tener entre 3 y 100 caracteres.'); return;
     }
+    if (nodes.some(node => !isValidNodeTitle(node.data.title))) {
+      setError(`Cada título de nodo debe tener entre 1 y ${MAX_NODE_TITLE_WORDS} palabras y un máximo de ${MAX_NODE_TITLE_CHARACTERS} caracteres.`); return;
+    }
     setBusy(true); setError('');
     try {
       // Solo se guardan datos académicos explícitos, nunca el estado interno de React Flow.
@@ -494,7 +498,8 @@ function EditorContent() {
         <div className="inspector-heading"><div className="eyebrow">PANEL DE PROPIEDADES</div><h2>{selected ? 'Editar concepto' : selectedEdge ? 'Relación argumentativa' : 'Información del esquema'}</h2></div>
         {selected ? <div className="inspector-fields">
           <label>TIPO DE CONCEPTO<select value={selected.data.category} onChange={event => updateNode({ category: event.target.value as ConceptNodeType['data']['category'] })}>{categories.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
-          <label>TÍTULO<input maxLength={100} value={selected.data.title} onChange={event => updateNode({ title: event.target.value })}/></label>
+          <label>TÍTULO DEL NODO<textarea className="concept-title-large" rows={3} maxLength={MAX_NODE_TITLE_CHARACTERS} value={selected.data.title} onChange={event => updateNode({ title: event.target.value })} aria-describedby="node-title-count"/></label>
+           <small id="node-title-count" className={`concept-title-word-caption${!isValidNodeTitle(selected.data.title) ? ' concept-title-word-caption--invalid' : ''}`} role="status">{nodeTitleWordCount(selected.data.title)} / {MAX_NODE_TITLE_WORDS} palabras · máximo {MAX_NODE_TITLE_CHARACTERS} caracteres. {nodeTitleWordCount(selected.data.title) > MAX_NODE_TITLE_WORDS ? 'Ha superado el límite: acorte el título antes de guardar.' : 'Fin del límite: 100 palabras.'}</small>
           <label>DESCRIPCIÓN<textarea maxLength={240} rows={6} value={selected.data.description} onChange={event => updateNode({ description: event.target.value })}/></label>
           <div className="concept-history-launch">
             <button type="button" className="button button-secondary" disabled={busy || loading} onClick={() => openConceptHistory(selected.id)}>

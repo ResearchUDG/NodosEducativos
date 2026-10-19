@@ -13,7 +13,7 @@ export function Layout() {
   const [profileOpen, setProfileOpen] = useState(false);
   const nav = [
     { to: '/', label: role === 'student' ? 'Mi biblioteca' : 'Tablero', icon: LayoutDashboard },
-    ...(canAuthor(role) ? [{ to: '/esquemas', label: 'Laboratorio 2D', icon: Network }, { to: '/investigador', label: 'Ficha de investigador', icon: GraduationCap }] : []),
+    ...(canAuthor(role) ? [{ to: '/esquemas', label: 'Laboratorio 2D', icon: Network }, { to: '/investigador', label: 'Trayectoria del investigador', icon: GraduationCap }] : [{ to: '/esquemas', label: 'Mi laboratorio 2D', icon: Network }]),
     { to: '/biblioteca', label: 'Publicaciones académicas', icon: BookOpen },
     ...(role === 'admin' ? [{ to: '/directorio', label: 'Directorio académico', icon: Users }] : []),
     { to: '/privacidad', label: 'Privacidad', icon: Lock },

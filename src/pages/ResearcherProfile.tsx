@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { BookOpenText, Plus, Save, ShieldCheck, UserRound, X } from 'lucide-react';
 import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { ResearchTrajectory } from '../components/ResearchTrajectory';
 import { useAuth } from '../lib/useAuth';
 import { useAccess, canAuthor } from '../lib/access';
 import { explainError } from '../lib/errors';
@@ -123,8 +124,8 @@ export function ResearcherProfile() {
 
   if (!canAuthor(role)) return <div role="alert">Solo profesores investigadores y administradores pueden gestionar una ficha académica.</div>;
   return <div className="researcher-profile-page">
-    <div className="page-intro"><div><div className="eyebrow">INVESTIGACIÓN / IDENTIDAD ACADÉMICA</div><h1>Mi ficha de investigador<span className="period">.</span></h1><p>Describa su trayectoria mediante etiquetas, líneas de investigación y semblanza.</p></div></div>
-    <div className="role-summary"><ShieldCheck size={23}/><div><b>Ficha interna y protegida</b><p>Solo usted puede modificar estos datos; la administración puede consultarlos. Las etiquetas son autodeclaradas: no verifican títulos ni cambian los roles o programas asignados. No aparecen en la biblioteca estudiantil.</p></div></div>
+    <div className="page-intro"><div><div className="eyebrow">INVESTIGACIÓN / IDENTIDAD ACADÉMICA</div><h1>Trayectoria del investigador<span className="period">.</span></h1><p>Describa su trayectoria mediante etiquetas, líneas de investigación y semblanza.</p></div></div>
+    <div className="role-summary"><ShieldCheck size={23}/><div><b>Trayectoria interna y protegida</b><p>Solo usted puede modificar estos datos; la administración puede consultarlos. Las etiquetas son autodeclaradas: no verifican títulos ni cambian los roles o programas asignados. No aparecen en la biblioteca estudiantil.</p></div></div>
     {error && <div role="alert" className="alert alert-error">{error}</div>}
     {notice && <div role="status" className="alert alert-success">{notice}</div>}
     <div className="researcher-profile-grid">
@@ -156,5 +157,6 @@ export function ResearcherProfile() {
         </form>}
       </section>
     </div>
+    <ResearchTrajectory profileExists={exists}/>
   </div>;
 }

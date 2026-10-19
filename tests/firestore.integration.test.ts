@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, it } from 'vitest';
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
-import { Timestamp, collection, deleteDoc, doc, getDoc, getDocs, runTransaction, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { Timestamp, collection, deleteDoc, doc, getDoc, getDocs, runTransaction, serverTimestamp, setDoc, updateDoc, query, where } from 'firebase/firestore';
 import { readFileSync } from 'node:fs';
 
 let env: RulesTestEnvironment;
@@ -52,7 +52,14 @@ describe('Directorio y aislamiento RBAC/ABAC', () => {
   it('no acepta correo no verificado aunque tenga roles', async () => assertFails(getDoc(publication(session('student', email('student'), false)))));
   it('no acepta dominio confusamente similar aunque tenga roles', async () => assertFails(getDoc(publication(session('student', 'student@alumnos.udg.mx.example.com')))));
   it('no acepta sesiones anónimas', async () => assertFails(getDoc(publication(env.unauthenticatedContext().firestore()))));
-  it('estudiante no puede crear esquemas privados', async () => assertFails(setDoc(draft(session('student'), 'student', 'nuevo'), diagram())));
+  it('estudiante puede crear un borrador propio, pero no acceder a borradores ajenos', async () => {
+    const own = session('student');
+    await assertSucceeds(setDoc(draft(own, 'student', 'nuevo'), diagram()));
+    await assertSucceeds(getDoc(draft(own, 'student', 'nuevo')));
+    await assertFails(setDoc(draft(own, 'professor', 'invasion'), diagram()));
+    await assertFails(getDoc(draft(own, 'professor', 'mapa')));
+    await assertFails(setDoc(draft(session('blocked'), 'blocked', 'invasion'), diagram()));
+  });
   it('estudiante no puede crear una publicación', async () => assertFails(setDoc(publication(session('student'), 'grupo1', 'creado'), { ...released('student'), sourceDiagramId: 'creado' })));
   it('estudiante no puede modificarlas ni borrarlas', async () => {
     await assertFails(updateDoc(publication(session('student')), { title: 'Modificado por alumno' }));
@@ -342,5 +349,124 @@ describe('Visor de estudio — aislamiento de la edición compartida', () => {
   });
   it('un estudiante de otro programa no puede consultar esta edición', async () => {
     await assertFails(getDoc(publication(session('visitor'), 'grupo1', 'mapa')));
+  });
+});
+
+
+/** Fase 3g — cronología personal: registros declarativos y privados. */
+describe('Trayectoria de investigación — acceso y integridad de hitos', () => {
+  const milestone = (db: import('firebase/firestore').Firestore, uid = 'professor', id = 'ejemplo') =>
+    doc(db, 'researcherProfiles', uid, 'milestones', id);
+  const valid = (uid = 'professor') => ({
+    ownerUid: uid, category: 'estudio', title: 'Seminario de filosofía',
+    institution: 'Centro universitario', startDate: '2024-08-01', endDate: '',
+    description: 'Lectura e investigación', url: '',
+    createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+  });
+  it('el profesor puede crear, consultar y listar sus acontecimientos', async () => {
+    await assertSucceeds(setDoc(milestone(session('professor')), valid()));
+    await assertSucceeds(getDoc(milestone(session('professor'))));
+    await assertSucceeds(getDocs(collection(session('professor'), 'researcherProfiles', 'professor', 'milestones')));
+  });
+  it('el titular puede editar conservando fecha de creación y eliminar un hito', async () => {
+    const ref = milestone(session('professor'), 'professor', 'editable');
+    await assertSucceeds(setDoc(ref, valid()));
+    await assertSucceeds(updateDoc(ref, { title: 'Seminario actualizado', updatedAt: serverTimestamp() }));
+    await assertSucceeds(deleteDoc(ref));
+  });
+  it('el estudiante no puede leer ni listar la trayectoria ajena', async () => {
+    await assertFails(getDoc(milestone(session('student'))));
+    await assertFails(getDocs(collection(session('student'), 'researcherProfiles', 'professor', 'milestones')));
+  });
+  it('un estudiante no puede crear, modificar ni borrar acontecimientos', async () => {
+    await assertFails(setDoc(milestone(session('student'), 'professor', 'ilegitimo'), valid('student')));
+    await assertFails(updateDoc(milestone(session('student')), { title: 'Modificado' }));
+    await assertFails(deleteDoc(milestone(session('student'))));
+  });
+  it('un profesor no puede leer ni alterar hitos de otro profesor', async () => {
+    await assertFails(getDoc(milestone(session('newprof'))));
+    await assertFails(setDoc(milestone(session('newprof'), 'professor', 'falso'), valid('newprof')));
+  });
+  it('la administración puede consultar una trayectoria sin modificarla', async () => {
+    await assertSucceeds(getDoc(milestone(session('root'))));
+    await assertFails(updateDoc(milestone(session('root')), { title: 'Cambio administrativo' }));
+  });
+  it('rechaza suplantación de autor, roles y fecha de creación alterada', async () => {
+    const db = session('professor');
+    await assertFails(setDoc(milestone(db, 'professor', 'suplantado'), valid('root')));
+    await assertFails(setDoc(milestone(db, 'professor', 'roles'), { ...valid(), role: 'admin' }));
+    await assertFails(updateDoc(milestone(db), { createdAt: serverTimestamp(), updatedAt: serverTimestamp() }));
+  });
+  it('rechaza categorías, fechas y períodos inválidos', async () => {
+    const db = session('professor');
+    await assertFails(setDoc(milestone(db, 'professor', 'categoria'), { ...valid(), category: 'administrador' }));
+    await assertFails(setDoc(milestone(db, 'professor', 'fecha'), { ...valid(), startDate: '24/08/2024' }));
+    await assertFails(setDoc(milestone(db, 'professor', 'periodo'), { ...valid(), endDate: '2023-01-01' }));
+  });
+  it('no crea hitos para un perfil inexistente o con un enlace no permitido', async () => {
+    await assertFails(setDoc(milestone(session('ghostprof'), 'ghostprof', 'fantasma'), valid('ghostprof')));
+    await assertFails(setDoc(milestone(session('professor'), 'professor', 'http'), { ...valid(), url: 'http://unsafe.test' }));
+  });
+  it('no permite consultar hitos con correo ajeno o cuenta bloqueada', async () => {
+    await assertFails(getDoc(milestone(session('professor', 'professor@gmail.com'))));
+    await assertFails(getDoc(milestone(session('blocked'))));
+  });
+});
+
+
+/** Envío para revisión: datos compartidos expresamente, nunca publicación automática. */
+describe('Laboratorio estudiantil y solicitudes privadas por programa', () => {
+  const requestRef = (db: import('firebase/firestore').Firestore, group='grupo1', id='solicitud-test') => doc(db, 'groupSubmissions', group, 'requests', id);
+  const studentDiagram = (db: import('firebase/firestore').Firestore, id='mapa-estudiante') => doc(db, 'users', 'student', 'diagrams', id);
+  const studentRevision = (db: import('firebase/firestore').Firestore, id='mapa-estudiante') => doc(db, 'users', 'student', 'diagrams', id, 'revisions', 'rev-1');
+  const requestData = (revisionTimestamp: unknown, changes: Record<string, unknown> = {}) => ({
+    studentUid: 'student', sourceDiagramId: 'mapa-estudiante', sourceRevisionId: 'rev-1', sourceRevisionSavedAt: revisionTimestamp,
+    title: 'Mapa de estudiante', description: 'Análisis académico', nodes: [
+      { id: 'n1', type: 'concept', position: {x:0,y:0}, data: { title:'Tesis', description:'Estudio', category:'tesis' } }
+    ], edges: [], status: 'pendiente', submittedAt: serverTimestamp(), ...changes,
+  });
+  it('el estudiante puede crear y revisar versiones de su propio sistema 2D', async () => {
+    const studentDb = session('student');
+    const diagramRef = studentDiagram(studentDb);
+    const node = { id:'n1', type:'concept', position:{x:0,y:0}, data:{title:'Tesis',description:'Estudio',category:'tesis'} };
+    await assertSucceeds(setDoc(diagramRef, { title:'Mapa de estudiante', description:'Análisis académico', nodes:[node], edges:[], createdAt:serverTimestamp(), updatedAt:serverTimestamp() }));
+    await assertSucceeds(setDoc(studentRevision(studentDb), { title:'Mapa de estudiante', description:'Análisis académico', nodes:[node], edges:[], kind:'save', authorUid:'student', savedAt:serverTimestamp() }));
+    await assertSucceeds(getDoc(studentRevision(studentDb)));
+    await assertSucceeds(getDocs(collection(studentDb,'users','student','diagrams','mapa-estudiante','revisions')));
+    await assertFails(getDoc(studentRevision(session('professor'))));
+  });
+  it('el estudiante puede solicitar revisión y el investigador puede leer solamente la copia enviada', async () => {
+    const studentDb = session('student');
+    const date = (await getDoc(studentRevision(studentDb))).data()?.savedAt;
+    const ref = requestRef(studentDb);
+    await assertSucceeds(setDoc(ref, requestData(date)));
+    await assertSucceeds(getDoc(ref));
+    await assertSucceeds(getDoc(requestRef(session('professor'))));
+    await assertSucceeds(getDocs(collection(session('professor'),'groupSubmissions','grupo1','requests')));
+    await assertSucceeds(getDocs(query(collection(studentDb,'groupSubmissions','grupo1','requests'), where('studentUid','==','student'))));
+    await assertFails(getDoc(studentDiagram(session('professor'))));
+  });
+  it('el estudiante no puede ver solicitudes de otras personas ni listar sin su filtro', async () => {
+    const outsider = session('visitor');
+    await assertFails(getDoc(requestRef(outsider)));
+    await assertFails(getDocs(collection(session('student'),'groupSubmissions','grupo1','requests')));
+  });
+  it('no se puede enviar a otro grupo o inventar versiones o autores', async () => {
+    const studentDb = session('student');
+    const date = (await getDoc(studentRevision(studentDb))).data()?.savedAt;
+    await assertFails(setDoc(requestRef(studentDb,'grupo2','rechazo'), requestData(date)));
+    await assertFails(setDoc(requestRef(studentDb,'grupo1','falso1'), requestData(date,{studentUid:'professor'})));
+    await assertFails(setDoc(requestRef(studentDb,'grupo1','falso2'), requestData(date,{sourceRevisionId:'inventada'})));
+    await assertFails(setDoc(requestRef(studentDb,'grupo1','falso3'), requestData(date,{title:'Título inventado'})));
+    await assertFails(setDoc(requestRef(studentDb,'grupo1','falso4'), requestData(date,{nodes:[{id:'espia'}]})));
+    await assertFails(setDoc(requestRef(studentDb,'grupo1','falso5'), requestData(date,{status:'revisado'})));
+  });
+  it('solo el investigador del grupo revisa; nunca publica automáticamente', async () => {
+    const profDb = session('professor');
+    await assertFails(updateDoc(requestRef(session('student')),{status:'revisado',reviewerUid:'student',reviewNote:'OK',reviewedAt:serverTimestamp()}));
+    await assertFails(updateDoc(requestRef(session('newprof')),{status:'revisado',reviewerUid:'newprof',reviewNote:'OK',reviewedAt:serverTimestamp()}));
+    await assertSucceeds(updateDoc(requestRef(profDb),{status:'devuelto',reviewerUid:'professor',reviewNote:'Incluya referencias',reviewedAt:serverTimestamp()}));
+    await assertFails(updateDoc(requestRef(profDb),{status:'revisado',reviewerUid:'professor',reviewNote:'',reviewedAt:serverTimestamp()}));
+    await assertFails(deleteDoc(requestRef(profDb)));
   });
 });

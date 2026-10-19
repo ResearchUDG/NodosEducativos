@@ -16,6 +16,13 @@ describe('Modelo académico del laboratorio 2D', () => {
     expect(graph.nodes[0].data.references?.[0].locator).toBe('A51/B75');
     expect(graph.edges[0].data?.relation).toBe('fundamenta');
   });
+  it('conserva títulos de nodo de cien palabras sin truncarlos al guardar', () => {
+    const n = node('a'); n.data.title = Array(100).fill('concepto').join(' ');
+    const result = serializeAcademicGraph([n], []);
+    expect(result.nodes[0].data.title).toBe(n.data.title);
+    n.data.title += ' exceso';
+    expect(() => serializeAcademicGraph([n], [])).toThrow(/100 palabras/);
+  });
   it('elimina propiedades efímeras de React Flow', () => {
     const n = { ...node('a'), selected: true, width: 300, data: { ...node('a').data, highlight: true } };
     const graph = serializeAcademicGraph([n], []);

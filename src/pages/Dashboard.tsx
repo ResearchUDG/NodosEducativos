@@ -9,6 +9,7 @@ import { assignedGroups, publishToGroup, publicationsInGroups, retractPublicatio
 import { explainError } from '../lib/errors';
 import type { Diagram } from '../lib/types';
 import { DiagramThumbnail } from '../components/DiagramThumbnail';
+import { GroupReviewInbox } from '../components/GroupReviewInbox';
 
 export function Dashboard() {
   const { user } = useAuth();
@@ -136,6 +137,7 @@ export function Dashboard() {
     <div className="governance-panel publication-management"><h2>Mis publicaciones vigentes</h2><p>Puede retirar la instantánea compartida sin borrar su trabajo privado. Los estudiantes solo tienen acceso mientras pertenezcan al grupo.</p>
       {publications.length === 0 ? <p>No hay sistemas publicados por esta cuenta.</p> : publications.map((p) => <div className="directory-person" key={`${p.groupId}/${p.id}`}><div className="person-details"><b>{p.title}</b><small>Programa: {groups.find((g) => g.id === p.groupId)?.name || p.groupId}</small>{Boolean(p.sourceRevisionSavedAt) && <small>Edición compartida: {revisionDate(p.sourceRevisionSavedAt)}</small>}</div><button disabled={busy} className="button button-secondary" onClick={() => void retract(p)}>Retirar publicación</button></div>)}
     </div>
+    <GroupReviewInbox/>
     <div className="getting-started"><div className="getting-icon"><Lightbulb size={23}/></div><div><h3>Un mapa para pensar, no solo para visualizar.</h3><p>La guía de lectura resalta nodos sin modificar sus posiciones. Las publicaciones se controlan por grupo.</p></div><Link to="/biblioteca" className="text-link"><BookOpenText size={16}/> Ver biblioteca publicada</Link></div>
   </>;
 }

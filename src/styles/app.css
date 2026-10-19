@@ -242,3 +242,67 @@
 .study-canvas-hint{position:absolute;right:17px;top:16px;z-index:5;display:flex;align-items:center;gap:10px;background:#fffefa;border:1px solid #dac7b9;border-radius:8px;box-shadow:0 7px 24px #36242b1a;padding:9px 12px;font-size:11px;font-weight:800;color:var(--wine)}
 .study-canvas-hint button{border:0;background:transparent;color:var(--wine);font-size:11px;font-weight:800;text-decoration:underline;text-underline-offset:2px;padding:3px}
 @media(max-width:650px){.study-canvas-hint{right:9px;top:9px;padding:7px 8px;gap:5px;font-size:10px}.study-canvas-hint button{font-size:10px}}
+
+
+/* Trayectoria del investigador · cronología privada y editable, responsiva. */
+.trajectory-section{margin-top:30px;background:#fff;border:1px solid var(--line);border-radius:15px;padding:30px;box-shadow:0 5px 25px #3720290a;min-width:0}
+.trajectory-hero{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;padding:0 0 25px;border-bottom:1px solid #e8e1de}
+.trajectory-hero h2{font-size:clamp(23px,2.8vw,34px);line-height:1.2;letter-spacing:-.045em;margin:12px 0 8px}
+.trajectory-hero p{font-size:13px;line-height:1.7;color:#665d64;margin:0 0 8px;max-width:680px}
+.trajectory-hero small{display:block;font-size:11px;line-height:1.65;color:#938188;max-width:690px}
+.trajectory-hero-count{flex:0 0 auto;min-width:120px;display:grid;place-content:center;text-align:center;border-radius:12px;background:linear-gradient(145deg,#75213f,#4c1b35);color:#fff;padding:18px 23px}
+.trajectory-hero-count b{font-size:32px;line-height:1.1}.trajectory-hero-count span{font-size:10px;margin-top:8px;color:#f5dce5}
+.trajectory-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:24px 0}
+.trajectory-filters{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
+.trajectory-filter{border:1px solid #e7dbe0;background:#fff;color:#775160;border-radius:999px;padding:9px 12px;font-size:11px;font-weight:750;cursor:pointer}
+.trajectory-filter:hover{border-color:#b78094;background:#f9f3f5}.trajectory-filter--active,.trajectory-filter--active:hover{background:#70213c;color:#fff;border-color:#70213c}
+.trajectory-empty{border:1px dashed #d6bfc8;background:#fdfafb;border-radius:12px;color:#7a6971;min-height:132px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:11px;padding:25px;text-align:center;font-size:13px;line-height:1.7}
+.trajectory-empty>svg{color:#9a6479}.trajectory-empty strong{font-size:17px;color:#422b36}.trajectory-empty span{font-size:12px}
+.trajectory-form{padding:23px;background:#fbf8f7;border:1px solid #e3d3d9;border-radius:12px;margin:18px 0 26px;scroll-margin-top:20px}
+.trajectory-form-header{display:flex;justify-content:space-between;gap:15px;align-items:flex-start}.trajectory-form-header h3{margin:0;font-size:19px;letter-spacing:-.025em}.trajectory-form-header p{color:#8b7c83;line-height:1.6;font-size:12px;margin:6px 0 0}
+.trajectory-icon-button{display:grid;place-items:center;width:36px;height:36px;border:1px solid #e5dce0;border-radius:7px;background:#fff;color:var(--wine);cursor:pointer;flex:0 0 auto}
+.trajectory-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.trajectory-form-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.trajectory-years{display:grid;gap:25px;margin-top:22px}.trajectory-year-group>h3{font-size:24px;letter-spacing:-.05em;color:#8e5c27;margin:0 0 16px;padding-left:14px}
+.trajectory-list{margin:0 0 0 22px;padding:0 0 0 28px;list-style:none;border-left:2px solid #e7d6da;display:grid;gap:18px}
+.trajectory-event{position:relative;min-width:0}.trajectory-marker{width:37px;height:37px;display:grid;place-items:center;position:absolute;left:-48px;top:15px;border-radius:12px;background:#7b3450;color:#fff;box-shadow:0 0 0 5px #fbf6f7;z-index:1}
+.trajectory-event--estudio .trajectory-marker{background:#668272}.trajectory-event--certificacion .trajectory-marker{background:#b28a45}.trajectory-event--obra .trajectory-marker{background:#823a56}.trajectory-event--proyecto .trajectory-marker{background:#5f718a}.trajectory-event--investigacion .trajectory-marker{background:#676191}
+.trajectory-card{min-width:0;background:#fff;border:1px solid #e6dedb;border-radius:11px;padding:19px 20px;box-shadow:0 4px 13px #3517210a}
+.trajectory-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:11px}
+.trajectory-kind{font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--wine)}.trajectory-card-head time{color:#9a7847;font-weight:700;font-variant-numeric:tabular-nums}
+.trajectory-card h4{margin:9px 0 8px;font-size:20px;letter-spacing:-.025em;line-height:1.35;overflow-wrap:anywhere}
+.trajectory-card p{line-height:1.7;margin:5px 0;overflow-wrap:anywhere}.trajectory-period{font-size:12px;color:#79686f}.trajectory-institution{font-weight:700;font-size:12px;color:#765c68}.trajectory-description{font-size:13px;color:#60575d;white-space:pre-wrap}
+.trajectory-link{display:inline-flex;align-items:center;gap:7px;color:var(--wine);font-size:12px;font-weight:800;text-decoration:underline;text-underline-offset:3px;margin-top:9px;overflow-wrap:anywhere}
+.trajectory-card-actions{margin-top:15px;padding-top:12px;border-top:1px solid #f0e9ea;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.trajectory-card-actions button{display:inline-flex;align-items:center;gap:6px;border:0;padding:6px 4px;background:transparent;color:var(--wine);font-size:11px;font-weight:800;cursor:pointer}
+.trajectory-card-actions button:last-child{color:#a1464f}.trajectory-card-actions button:disabled{opacity:.45;cursor:default}
+.trajectory-filter:focus-visible,.trajectory-card-actions button:focus-visible,.trajectory-icon-button:focus-visible{outline:2px solid #c28f3b;outline-offset:3px}
+@media(max-width:720px){.trajectory-section{padding:18px}.trajectory-hero{flex-direction:column}.trajectory-hero-count{min-width:100%;display:flex;gap:12px;align-items:center;justify-content:center}.trajectory-hero-count b{font-size:24px}.trajectory-hero-count span{margin:0}.trajectory-toolbar>.button{width:100%}.trajectory-form-grid{grid-template-columns:1fr}.trajectory-list{margin-left:10px;padding-left:25px}.trajectory-marker{left:-43px;width:32px;height:32px}.trajectory-card{padding:16px}.trajectory-card h4{font-size:18px}}
+@media(prefers-reduced-motion:reduce){.trajectory-card,.trajectory-marker{scroll-behavior:auto}}
+
+
+/* Laboratorio estudiantil + revisión de instantáneas: sin acceso a borradores ajenos. */
+.student-diagram-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,350px),1fr));gap:18px;margin:22px 0 32px}
+.student-diagram-card,.student-new-card{min-width:0;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:12px}
+.student-card-link{color:inherit;text-decoration:none;display:block}
+.student-card-body{padding:18px}.student-card-body small{font-size:10px;letter-spacing:.1em;color:#805671;font-weight:800}
+.student-card-body h2{font-size:20px;letter-spacing:-.025em;margin:7px 0;overflow-wrap:anywhere}
+.student-card-body p{font-size:12px;color:var(--muted);line-height:1.7}.student-card-body span{display:inline-flex;gap:7px;align-items:center;color:var(--wine);font-size:12px;font-weight:800}
+.student-submit{display:grid;gap:12px;padding:18px;border-top:1px solid var(--line)}.student-submit h3{margin:0;font-size:14px;color:var(--wine)}.student-submit>p{margin:0;font-size:12px;line-height:1.7;color:var(--muted)}
+.student-submit label,.student-review-actions label{display:grid;gap:6px;font-size:12px;font-weight:750}
+.student-submit select,.student-review-actions textarea{width:100%;min-width:0;background:#fff;border:1px solid #dcd5d3;padding:11px;border-radius:7px;color:var(--ink)}
+.student-new-card{min-height:190px;display:grid;place-content:center;gap:12px;color:var(--wine);font-weight:800;cursor:pointer}
+.student-sent{margin-top:22px}.student-sent h2,.student-review-inbox h2{display:flex;align-items:center;gap:8px}
+.student-review-inbox{margin-top:24px}.student-review-list{display:grid;gap:10px;margin:15px 0}.student-review-list article{display:flex;gap:9px;flex-wrap:wrap;align-items:center;border:1px solid var(--line);border-radius:8px;padding:14px;min-width:0}
+.student-review-list article b{overflow-wrap:anywhere;font-size:13px;flex:1 1 140px}.student-review-list article span{font-size:11px;color:#775669;flex:1 1 120px}.student-review-list article p{flex-basis:100%;line-height:1.65;margin:0}
+.student-review-detail{margin-top:19px;border:1px solid #e4d8da;background:#fdfbf9;border-radius:10px;padding:20px}.student-review-detail-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.student-review-graph{height:490px;background:#fff;border:1px solid #e7dede;border-radius:10px;overflow:hidden;position:relative;margin:18px 0}
+.student-review-sources{padding:17px;background:#fff;border-radius:10px;border:1px solid #e7dbdc}.student-review-sources h4{margin:0 0 10px;overflow-wrap:anywhere}.student-review-sources h5{display:flex;gap:8px;align-items:center;margin-bottom:6px}.student-review-sources p{overflow-wrap:anywhere;line-height:1.65}
+.student-review-actions{border-top:1px solid var(--line);padding-top:18px;display:grid;gap:12px}.student-review-actions>div{display:flex;gap:9px;flex-wrap:wrap}
+.concept-title-word-caption{display:block;color:#796c70;font-size:11px;line-height:1.5;margin-top:7px}
+.concept-title-word-caption--invalid{color:#a0354a;font-weight:800}
+.inspector-fields textarea.concept-title-large{resize:vertical;min-height:86px;white-space:pre-wrap;overflow-wrap:anywhere}
+.concept strong,.concept-node strong,.react-flow__node-concept strong{overflow-wrap:anywhere;white-space:normal;line-height:1.4}
+@media(max-width:720px){.student-review-detail{padding:12px}.student-review-graph{height:390px}.student-review-list article{align-items:flex-start;flex-direction:column}.student-review-list .button{width:100%}}
+/* 100 palabras pueden ocupar muchos renglones: lectura interna sin invadir otros nodos. */
+.react-flow__node-concept .concept strong{max-height:172px;overflow-y:auto;display:block;scrollbar-width:thin}

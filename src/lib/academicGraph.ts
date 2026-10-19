@@ -1,4 +1,5 @@
 import type { AcademicReference, ArgumentRelation, ConceptEdge, ConceptNode } from './types';
+import { isValidNodeTitle, MAX_NODE_TITLE_CHARACTERS } from './nodeTitle';
 
 export const MAX_NODE_REFERENCES = 4;
 export const relationLabels: Record<ArgumentRelation, string> = {
@@ -37,6 +38,7 @@ export function validateAcademicGraph(nodes: ConceptNode[], edges: ConceptEdge[]
   if (nodes.length > 80 || edges.length > 160) return 'El esquema supera el máximo de 80 nodos o 160 conexiones.';
   const ids = new Set(nodes.map(node => node.id));
   for (const node of nodes) {
+    if (!isValidNodeTitle(node.data.title)) return 'Cada título de nodo debe tener entre 1 y 100 palabras y como máximo 1600 caracteres.';
     const refs = node.data.references ?? [];
     if (!Array.isArray(refs) || refs.length > MAX_NODE_REFERENCES) return 'Cada nodo admite hasta cuatro referencias.';
     for (const ref of refs) {
@@ -57,7 +59,7 @@ export function serializeAcademicGraph(nodes: ConceptNode[], edges: ConceptEdge[
       id: node.id, type: 'concept' as const,
       position: { x: Number.isFinite(node.position.x) ? node.position.x : 0, y: Number.isFinite(node.position.y) ? node.position.y : 0 },
       data: {
-        title: text(node.data.title, 100), description: text(node.data.description, 240),
+        title: text(node.data.title, MAX_NODE_TITLE_CHARACTERS), description: text(node.data.description, 240),
         category: (categories.has(node.data.category) ? node.data.category : 'idea') as ConceptNode['data']['category'],
         ...(node.data.references?.length ? { references: node.data.references.map(normalizeReference) } : {}),
       },

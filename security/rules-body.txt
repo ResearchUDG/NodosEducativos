@@ -144,6 +144,68 @@
         && request.resource.data.updatedAt == request.time
         && validPublicationEdition();
     }
+    // Trayectoria privada: eventos manuales sin acreditación oficial ni permisos.
+    function validTrajectoryMilestoneDate(value) {
+      return value is string
+        && value.matches('^(19|20|21)[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$');
+    }
+    function validTrajectoryMilestone(uid) {
+      return request.resource.data.keys().hasAll(['ownerUid','category','title','institution','startDate','endDate','description','url','createdAt','updatedAt'])
+        && request.resource.data.keys().hasOnly(['ownerUid','category','title','institution','startDate','endDate','description','url','createdAt','updatedAt'])
+        && request.resource.data.ownerUid == uid
+        && request.resource.data.category in ['estudio','certificacion','obra','proyecto','investigacion']
+        && request.resource.data.title is string && request.resource.data.title.size() >= 3 && request.resource.data.title.size() <= 120
+        && request.resource.data.institution is string && request.resource.data.institution.size() <= 140
+        && request.resource.data.description is string && request.resource.data.description.size() <= 600
+        && validTrajectoryMilestoneDate(request.resource.data.startDate)
+        && request.resource.data.endDate is string
+        && (request.resource.data.endDate == '' || (
+          validTrajectoryMilestoneDate(request.resource.data.endDate)
+          && request.resource.data.endDate >= request.resource.data.startDate
+        ))
+        && request.resource.data.url is string && request.resource.data.url.size() <= 500
+        && (request.resource.data.url == '' || request.resource.data.url.matches('^https://[^ ]+$'))
+        && request.resource.data.updatedAt == request.time;
+    }
+    // Solicitudes: instantáneas de revisiones privadas enviadas expresamente.
+    // No crean publicaciones ni dan acceso al borrador o historial estudiantil.
+    function validStudentReviewRequest() {
+      let revision = /databases/$(database)/documents/users/$(request.auth.uid)/diagrams/$(request.resource.data.sourceDiagramId)/revisions/$(request.resource.data.sourceRevisionId);
+      return request.resource.data.keys().hasOnly(['studentUid','sourceDiagramId','sourceRevisionId','sourceRevisionSavedAt','title','description','nodes','edges','status','submittedAt'])
+        && request.resource.data.keys().hasAll(['studentUid','sourceDiagramId','sourceRevisionId','sourceRevisionSavedAt','title','description','nodes','edges','status','submittedAt'])
+        && request.resource.data.studentUid == request.auth.uid
+        && request.resource.data.status == 'pendiente'
+        && request.resource.data.submittedAt == request.time
+        && request.resource.data.sourceDiagramId is string && request.resource.data.sourceDiagramId.size() > 0
+        && request.resource.data.sourceRevisionId is string && request.resource.data.sourceRevisionId.size() > 0
+        && request.resource.data.sourceRevisionSavedAt is timestamp
+        && request.resource.data.title is string && request.resource.data.title.size() >= 3 && request.resource.data.title.size() <= 100
+        && request.resource.data.description is string && request.resource.data.description.size() <= 500
+        && request.resource.data.nodes is list && request.resource.data.nodes.size() > 0 && request.resource.data.nodes.size() <= 80
+        && request.resource.data.edges is list && request.resource.data.edges.size() <= 160
+        && exists(revision)
+        && get(revision).data.savedAt == request.resource.data.sourceRevisionSavedAt
+        && get(revision).data.title == request.resource.data.title
+        && get(revision).data.description == request.resource.data.description
+        && get(revision).data.nodes == request.resource.data.nodes
+        && get(revision).data.edges == request.resource.data.edges;
+    }
+    match /groupSubmissions/{groupId}/requests/{requestId} {
+      allow get: if canPublish(groupId) || (hasRole('student') && memberOf(groupId) && resource.data.studentUid == request.auth.uid);
+      // Para alumnos se exige query where('studentUid', '==', uid); no listados ajenos.
+      allow list: if canPublish(groupId) || (hasRole('student') && memberOf(groupId) && resource.data.studentUid == request.auth.uid);
+      allow create: if hasRole('student') && memberOf(groupId) && validStudentReviewRequest();
+      allow update: if canPublish(groupId)
+        && resource.data.status == 'pendiente'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','reviewerUid','reviewedAt','reviewNote'])
+        && request.resource.data.status in ['revisado','devuelto']
+        && request.resource.data.reviewerUid == request.auth.uid
+        && request.resource.data.reviewedAt == request.time
+        && request.resource.data.reviewNote is string
+        && request.resource.data.reviewNote.size() <= 1200
+        && (request.resource.data.status != 'devuelto' || request.resource.data.reviewNote.size() >= 1);
+      allow delete: if false;
+    }
     match /access/{uid} {
       allow get: if institutionalUser() && (request.auth.uid == uid || admin());
       allow list: if admin();
@@ -203,6 +265,20 @@
         && request.resource.data.createdAt == resource.data.createdAt;
       allow delete: if false;
     }
+    // Hitos separados: las etiquetas académicas y las revisiones 2D no se alteran.
+    match /researcherProfiles/{uid}/milestones/{milestoneId} {
+      allow get, list: if admin() || (author() && request.auth.uid == uid);
+      allow create: if author() && request.auth.uid == uid
+        && exists(/databases/$(database)/documents/researcherProfiles/$(uid))
+        && validTrajectoryMilestone(uid)
+        && request.resource.data.createdAt == request.time;
+      allow update: if author() && request.auth.uid == uid
+        && validTrajectoryMilestone(uid)
+        && resource.data.ownerUid == uid
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if author() && request.auth.uid == uid
+        && resource.data.ownerUid == uid;
+    }
     match /users/{uid} {
       allow get: if institutionalUser() && approved() && request.auth.uid == uid;
       allow list: if false;
@@ -214,26 +290,26 @@
         && request.resource.data.updatedAt == request.time;
       allow delete: if false;
       match /diagrams/{diagramId} {
-        allow get, list: if institutionalUser() && author() && request.auth.uid == uid;
-        allow create: if institutionalUser() && author() && request.auth.uid == uid
+        allow get, list: if institutionalUser() && approved() && request.auth.uid == uid;
+        allow create: if institutionalUser() && approved() && request.auth.uid == uid
           && validDiagram()
           && request.resource.data.createdAt == request.time
           && request.resource.data.updatedAt == request.time;
-        allow update: if institutionalUser() && author() && request.auth.uid == uid
+        allow update: if institutionalUser() && approved() && request.auth.uid == uid
           && validDiagram()
           && request.resource.data.createdAt == resource.data.createdAt
           && request.resource.data.updatedAt == request.time;
-        allow delete: if institutionalUser() && author() && request.auth.uid == uid;
+        allow delete: if institutionalUser() && approved() && request.auth.uid == uid;
         // Solo el propietario autorizado consulta historial. No se puede editar
         // una revisión existente ni eliminarla mientras viva su borrador.
         match /revisions/{revisionId} {
-          allow get, list: if institutionalUser() && author() && request.auth.uid == uid;
-          allow create: if institutionalUser() && author() && request.auth.uid == uid
+          allow get, list: if institutionalUser() && approved() && request.auth.uid == uid;
+          allow create: if institutionalUser() && approved() && request.auth.uid == uid
             && exists(/databases/$(database)/documents/users/$(uid)/diagrams/$(diagramId))
             && validDiagramRevision(uid, revisionId);
           allow update: if false;
           // Purga al borrar previamente el documento padre; no es restauración.
-          allow delete: if institutionalUser() && author() && request.auth.uid == uid
+          allow delete: if institutionalUser() && approved() && request.auth.uid == uid
             && !exists(/databases/$(database)/documents/users/$(uid)/diagrams/$(diagramId));
         }
       }
