@@ -62,6 +62,7 @@ export function serializeAcademicGraph(nodes: ConceptNode[], edges: ConceptEdge[
         title: text(node.data.title, MAX_NODE_TITLE_CHARACTERS), description: text(node.data.description, 240),
         category: (categories.has(node.data.category) ? node.data.category : 'idea') as ConceptNode['data']['category'],
         ...(node.data.references?.length ? { references: node.data.references.map(normalizeReference) } : {}),
+        ...(node.data.critical === true ? { critical: true } : {}),
       },
     })),
     edges: edges.map(edge => ({

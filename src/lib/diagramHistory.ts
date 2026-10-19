@@ -56,8 +56,8 @@ export function compareDiagramSnapshots(previous: DiagramSnapshot, next: Diagram
   for (const [id, node] of newNodes) {
     const old = oldNodes.get(id);
     if (!old) { nodesAdded++; changedConcepts.push(`Añadido: ${node.data.title}`); continue; }
-    const oldCore = { title: old.data.title, description: old.data.description, category: old.data.category, position: old.position };
-    const newCore = { title: node.data.title, description: node.data.description, category: node.data.category, position: node.position };
+    const oldCore = { title: old.data.title, description: old.data.description, category: old.data.category, critical: old.data.critical === true, position: old.position };
+    const newCore = { title: node.data.title, description: node.data.description, category: node.data.category, critical: node.data.critical === true, position: node.position };
     const bibliographyChanged = refs(old) !== refs(node);
     if (bibliographyChanged) referencesChanged++;
     if (bibliographyChanged || JSON.stringify(oldCore) !== JSON.stringify(newCore)) {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Background, BackgroundVariant, Controls, MiniMap, ReactFlow, ReactFlowProvider } from '@xyflow/react';
+import { Background, BackgroundVariant, Controls, MiniMap, ReactFlow, ReactFlowProvider, useReactFlow } from '@xyflow/react';
 import { ArrowLeft, ArrowRight, BookOpen, Check, ChevronLeft, CircleHelp, Focus } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { ConceptNode } from '../components/ConceptNode';
@@ -7,6 +7,7 @@ import { openPublication, type Publication } from '../lib/groups';
 import { explainError } from '../lib/errors';
 import { safeReferenceUrl } from '../lib/academicGraph';
 import { revisionDate } from '../lib/diagramHistory';
+import { guideStartIndex, numberedNodes } from '../lib/graphEnhancements';
 import { publishedReadingGraph, readingProgress, readingStep, studentConnections } from '../lib/studyReading';
 import type { AcademicReference } from '../lib/types';
 
@@ -30,6 +31,7 @@ function PublishedSources({ references }: { references?: AcademicReference[] }) 
 
 function ReadOnlyCanvas() {
   const { groupId, id } = useParams();
+  const flow = useReactFlow();
   const [publication, setPublication] = useState<Publication | null>(null);
   const [error, setError] = useState('');
   const [guidedIndex, setGuidedIndex] = useState<number | null>(null);
@@ -60,7 +62,7 @@ function ReadOnlyCanvas() {
     () => shownNode ? studentConnections(published.nodes, published.edges, shownNode.id) : [],
     [published, shownNode?.id],
   );
-  const nodes = useMemo(() => published.nodes.map(node => ({
+  const nodes = useMemo(() => numberedNodes(published.nodes).map(node => ({
     ...node,
     data: { ...node.data, highlight: node.id === shownNode?.id, studyDimmed: studyMode && !!shownNode && node.id !== shownNode.id },
   })), [published.nodes, shownNode?.id, studyMode]);
@@ -73,10 +75,16 @@ function ReadOnlyCanvas() {
     };
   }), [published.edges, shownNode?.id, studyMode]);
 
+  useEffect(() => {
+    if (!activeNode) return;
+    // Solo pan/zoom, nunca mutación del grafo publicado.
+    void flow.setCenter(activeNode.position.x + 125, activeNode.position.y + 95, { zoom: 0.85, duration: 430 });
+  }, [activeNode?.id, flow]);
+
   const isGuiding = guidedIndex !== null;
   const beginGuide = () => {
     if (!published.nodes.length) return;
-    setGuidedIndex(0);
+    setGuidedIndex(guideStartIndex(published.nodes, selectedNodeId));
     setSelectedNodeId(null);
   };
   const stopGuide = () => {
@@ -140,7 +148,7 @@ function ReadOnlyCanvas() {
         {shownNode ? <>
           <div className="study-detail-grid">
             <article className="study-idea-detail">
-              <div className="eyebrow">IDEA CENTRAL</div>
+              <div className="eyebrow">NODO {String(published.nodes.findIndex(n => n.id === shownNode.id) + 1).padStart(2, '0')} · {shownNode.data.critical === true ? 'NODO CRÍTICO' : 'IDEA CENTRAL'}</div>
               <h3>{shownNode.data.title}</h3>
               <p>{shownNode.data.description || 'Este concepto todavía no tiene una explicación desarrollada.'}</p>
             </article>

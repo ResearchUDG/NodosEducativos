@@ -306,3 +306,33 @@
 @media(max-width:720px){.student-review-detail{padding:12px}.student-review-graph{height:390px}.student-review-list article{align-items:flex-start;flex-direction:column}.student-review-list .button{width:100%}}
 /* 100 palabras pueden ocupar muchos renglones: lectura interna sin invadir otros nodos. */
 .react-flow__node-concept .concept strong{max-height:172px;overflow-y:auto;display:block;scrollbar-width:thin}
+
+
+/* Fase 3h — numeración de nodos, criticidad académica y conexiones múltiples. */
+.concept-identity{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
+.concept-number{display:inline-flex;align-items:center;justify-content:center;min-width:29px;height:27px;padding:0 5px;border:1px solid #decfce;border-radius:5px;background:#f6f0ed;color:#71243e;font-size:11px;font-weight:900;font-variant-numeric:tabular-nums}
+.concept-critical-label{margin-left:auto;display:inline-flex;align-items:center;color:#a84b16;background:#fff0d9;border:1px solid #e5b66d;border-radius:25px;padding:3px 7px;font-size:9px;font-weight:900;letter-spacing:.075em}
+.concept.concept--critical{border-color:#e1a34c;border-top:5px solid #b24e25;background:linear-gradient(155deg,#fff5e8 0%,#fff 55%);box-shadow:0 0 0 2px #f1b75a88,0 0 27px 5px #eda6505c,0 15px 28px #7c3b1533;isolation:isolate}
+.concept--critical .concept-number{color:#99441c;background:#fff0d9;border-color:#e0b878}
+.concept.concept--critical.concept--selected{outline:3px solid #ac4c20;outline-offset:3px}
+.concept.concept--critical.concept--guided{outline:4px solid #ffbd46;outline-offset:5px;box-shadow:0 0 0 11px #ffcb673c,0 0 38px 11px #eda65083}
+.concept--batch-source{outline:4px solid #6c2b4c;outline-offset:4px}
+.concept--batch-target{outline:4px solid #47846e;outline-offset:4px;box-shadow:0 0 0 9px #64aa8a31}
+.concept-number-caption{font-size:11px;letter-spacing:.14em;color:var(--wine);font-weight:900}
+.critical-toggle{display:flex!important;flex-direction:row!important;align-items:flex-start!important;gap:10px!important;padding:13px!important;border:1px solid #e0bb92;background:#fff7ee;border-radius:9px}
+.critical-toggle input{width:19px!important;height:19px;margin:2px 0 0;flex:0 0 auto;accent-color:#aa5529}
+.critical-toggle span{display:grid;gap:5px}.critical-toggle b{color:#90421b;font-size:12px}.critical-toggle small{color:#866f62;font-size:11px;line-height:1.4}
+.graph-toolbar .batch-connect-launch{border:1px solid #ae7187;color:var(--wine);background:#fff;padding:8px 11px;min-height:36px}
+.graph-toolbar .batch-connect-launch--active{background:#f3e4ea;border-color:var(--wine)}
+.batch-connect-panel{padding:14px 16px;display:grid;grid-template-columns:minmax(160px,1fr) minmax(150px,220px);gap:12px 16px;background:#fcf6f7;border:1px solid #e3ced6;border-left:4px solid var(--wine);border-radius:8px;margin:10px 0}
+.batch-connect-intro{min-width:0}.batch-connect-intro strong{font-size:12px;color:var(--wine);overflow-wrap:anywhere}.batch-connect-intro p{margin:5px 0 0;font-size:11px;line-height:1.6;color:#73666b}
+.batch-connect-panel label{display:grid;gap:5px;font-size:11px;font-weight:750;color:var(--wine)}
+.batch-connect-panel select{padding:9px;border:1px solid #dac9ce;border-radius:6px;background:#fff;color:var(--ink);min-width:0}
+.batch-connect-actions{grid-column:1/-1;display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px}
+.batch-connect-actions>span{font-size:11px;font-weight:800;color:#6b4b59;margin-right:auto}
+.batch-connect-actions .button{min-height:34px;padding:7px 11px}
+.batch-connect-feedback{font-size:12px;line-height:1.5;color:#316e51;background:#f0f9f2;border-radius:7px;padding:9px 12px;margin:9px 0}
+@media(max-width:700px){.batch-connect-panel{grid-template-columns:1fr}.batch-connect-actions .button{flex:1 1 140px}.concept-identity{gap:4px}.concept-critical-label{font-size:8px}}
+@media(prefers-reduced-motion:reduce){.concept.concept--critical{animation:none}}
+
+.graph-toolbar{height:auto;min-height:52px;flex-wrap:wrap;padding:9px 12px}

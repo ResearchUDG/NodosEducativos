@@ -130,6 +130,8 @@ export function describeConceptChanges(
       description: 'Se modificó la explicación del concepto.' });
     if (old.data.category !== current.data.category) changes.push({ category: 'concepto',
       description: 'Se cambió el tipo de concepto.' });
+    if ((old.data.critical === true) !== (current.data.critical === true)) changes.push({ category: 'concepto',
+      description: current.data.critical === true ? 'Se destacó el nodo como crítico.' : 'Se retiró la marca de nodo crítico.' });
     if (JSON.stringify(old.position) !== JSON.stringify(current.position)) changes.push({ category: 'concepto',
       description: 'Se movió el concepto en el mapa.' });
     changes.push(...describeReferenceChanges(old.data.references ?? [], current.data.references ?? []));

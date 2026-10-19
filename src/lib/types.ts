@@ -14,6 +14,10 @@ export type ConceptData = {
   description: string;
   category: 'tesis' | 'idea' | 'fuente' | 'pregunta';
   references?: AcademicReference[];
+  /** Marca académica explícita del autor, no una valoración automática. */
+  critical?: boolean;
+  /** Propiedad de presentación, nunca persistida. */
+  displayNumber?: number;
   [key: string]: unknown;
 };
 export type ConceptNode = Node<ConceptData, 'concept'>;

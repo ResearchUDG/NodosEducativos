@@ -14,6 +14,7 @@ import { buildRevisionTimeline, filterTimeline, type TimelineFilter } from '../l
 import { buildConceptHistory, describeConceptChanges, filterConceptHistory, type ConceptEventFilter } from '../lib/conceptHistory';
 import { useAuth } from '../lib/useAuth';
 import { isValidNodeTitle, MAX_NODE_TITLE_CHARACTERS, MAX_NODE_TITLE_WORDS, nodeTitleWordCount } from '../lib/nodeTitle';
+import { guideStartIndex, numberedNodes, planMultipleConnections } from '../lib/graphEnhancements';
 import { ConceptNode } from '../components/ConceptNode';
 import { blankReference, MAX_NODE_REFERENCES, relationKeys, relationLabels, safeReferenceUrl, serializeAcademicGraph } from '../lib/academicGraph';
 import { isReferencePersisted, snapshotPersistedReferences } from '../lib/academicReferenceView';
@@ -48,6 +49,11 @@ function EditorContent() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [guiding, setGuiding] = useState(false);
+  const [batchMode, setBatchMode] = useState(false);
+  const [batchSourceId, setBatchSourceId] = useState<string | null>(null);
+  const [batchTargetIds, setBatchTargetIds] = useState<string[]>([]);
+  const [batchRelation, setBatchRelation] = useState<ArgumentRelation>('fundamenta');
+  const [batchFeedback, setBatchFeedback] = useState('');
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -133,7 +139,7 @@ function EditorContent() {
     setTitle(restored.title); setDescription(restored.description);
     setNodes(structuredClone(restored.nodes)); setEdges(structuredClone(restored.edges));
     setSelectedId(null); setSelectedEdgeId(null); setEditingReference(null);
-    setGuiding(false); setStep(0); setSaved(false);
+    setGuiding(false); setStep(0); setBatchMode(false); setBatchSourceId(null); setBatchTargetIds([]); setSaved(false);
     setRestorePending(revision.id); setHistoryOpen(false); setError('');
   }
 
@@ -240,6 +246,48 @@ function EditorContent() {
     });
   }
 
+  function beginBatch() {
+    setBatchMode(true); setBatchSourceId(selectedId); setBatchTargetIds([]);
+    setGuiding(false); setBatchFeedback(''); setSelectedEdgeId(null);
+  }
+
+  function cancelBatch() {
+    setBatchMode(false); setBatchSourceId(null); setBatchTargetIds([]);
+  }
+
+  function clickBatchNode(nodeId: string) {
+    if (!batchSourceId) {
+      setBatchSourceId(nodeId); setSelectedId(nodeId); return;
+    }
+    if (nodeId === batchSourceId) return;
+    setBatchTargetIds(old => old.includes(nodeId) ? old.filter(id => id !== nodeId) : [...old, nodeId]);
+  }
+
+  function commitBatch() {
+    if (!batchSourceId || !batchTargetIds.length) return;
+    try {
+      const { created, ignored } = planMultipleConnections(nodes, edges, batchSourceId, batchTargetIds, batchRelation, () => crypto.randomUUID());
+      if (created.length) {
+        setEdges(old => [...old, ...created]);
+        setSaved(false); setError('');
+      }
+      setBatchFeedback(`${created.length} conexiones creadas${ignored ? `; ${ignored} repetidas o inválidas omitidas` : ''}. ${created.length ? 'Pulse «Guardar esquema» para conservarlas.' : 'No hay relaciones nuevas que añadir.'}`);
+      cancelBatch();
+    } catch (reason) { setError(explainError(reason)); }
+  }
+
+  function focusConcept(node: ConceptNodeType) {
+    // Mueve únicamente la cámara. Nunca modifica la coordenada guardada.
+    void flow.setCenter(node.position.x + 125, node.position.y + 95, { zoom: 0.85, duration: 430 });
+  }
+
+  function beginGuide() {
+    if (!nodes.length) return;
+    setStep(guideStartIndex(nodes, selectedId));
+    setGuiding(true);
+    cancelBatch();
+  }
+
   function addConcept() {
     const number = nodes.length;
     if (number >= 80) { setError('Por seguridad, un esquema admite un máximo de 80 nodos.'); return; }
@@ -264,6 +312,8 @@ function EditorContent() {
     setEdges(existing => existing.filter(edge => edge.source !== selectedId && edge.target !== selectedId));
     setSelectedId(null);
     setGuiding(false);
+    if (selectedId === batchSourceId) cancelBatch();
+    setBatchTargetIds(old => old.filter(id => id !== selectedId));
     setSaved(false);
   }
 
@@ -275,9 +325,21 @@ function EditorContent() {
   }
 
   const highlightedId = guiding ? nodes[step % Math.max(nodes.length, 1)]?.id : undefined;
-  const renderedNodes = useMemo(() => nodes.map(node => ({
-    ...node, data: { ...node.data, highlight: node.id === highlightedId },
-  })), [nodes, highlightedId]);
+  const renderedNodes = useMemo(() => numberedNodes(nodes).map(node => ({
+    ...node, data: {
+      ...node.data, highlight: node.id === highlightedId,
+      batchSource: batchMode && node.id === batchSourceId,
+      batchTarget: batchMode && batchTargetIds.includes(node.id),
+    },
+  })), [nodes, highlightedId, batchMode, batchSourceId, batchTargetIds]);
+
+  useEffect(() => {
+    if (!guiding || !nodes.length) return;
+    const current = nodes[step % nodes.length];
+    if (current) focusConcept(current);
+    // Solo cambia la vista al variar el paso; no sigue cada arrastre del lienzo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [guiding, step]);
 
   async function save(event?: FormEvent) {
     event?.preventDefault();
@@ -332,7 +394,7 @@ function EditorContent() {
           if (historyOpen) setHistoryOpen(false);
           else { setHistoryScope('esquema'); setHistoryOpen(true); void refreshHistory(); }
         }}><History size={17}/> Historial</button>
-        <button className="button button-secondary" disabled={busy || loading} onClick={() => { setGuiding(true); setStep(0); }}><CircleHelp size={17}/> Iniciar guía</button>
+        <button className="button button-secondary" disabled={busy || loading} onClick={beginGuide}><CircleHelp size={17}/> Iniciar guía</button>
         <button className="button button-primary" disabled={busy || loading} onClick={() => void save()}><Save size={17}/> {busy ? 'Guardando…' : saved ? 'Guardado' : 'Guardar esquema'}</button>
       </div>
     </div>
@@ -468,16 +530,22 @@ function EditorContent() {
     </section>}
     <div className="editor-layout">
       <div className="graph-region">
-        <div className="graph-toolbar"><span><span className="live-dot"/> LIENZO 2D PRIVADO</span><span>{nodes.length} NODOS · {edges.length} CONEXIONES</span><button onClick={addConcept} disabled={loading}><Plus size={16}/> Añadir concepto</button></div>
+        <div className="graph-toolbar"><span><span className="live-dot"/> LIENZO 2D PRIVADO</span><span>{nodes.length} NODOS · {edges.length} CONEXIONES</span><button onClick={addConcept} disabled={loading || batchMode}><Plus size={16}/> Añadir concepto</button><button type="button" className={`button batch-connect-launch${batchMode ? ' batch-connect-launch--active' : ''}`} disabled={loading || !nodes.length} aria-pressed={batchMode} onClick={batchMode ? cancelBatch : beginBatch}><GitCompareArrows size={16}/> {batchMode ? 'Salir de conexiones múltiples' : 'Conectar varios'}</button></div>
+        {batchMode && <section className="batch-connect-panel" aria-label="Conectar varios nodos desde el mapa">
+          <div className="batch-connect-intro"><strong>{batchSourceId ? `Origen: #${String(nodes.findIndex(n => n.id === batchSourceId) + 1).padStart(2, '0')} ${nodes.find(n => n.id === batchSourceId)?.data.title ?? ''}` : '1. Pulse en el mapa el nodo de origen'}</strong><p>{batchSourceId ? '2. Pulse cada destino en el mapa (puede seleccionar varios). Pulse otra vez para quitarlo.' : 'Puede elegir cualquier nodo como origen. Sus posiciones no cambiarán.'}</p></div>
+          <label>Tipo de relación<select value={batchRelation} onChange={event => setBatchRelation(event.target.value as ArgumentRelation)}>{relationKeys.map(key => <option key={key} value={key}>{relationLabels[key]}</option>)}</select></label>
+          <div className="batch-connect-actions"><span>{batchTargetIds.length} destinos</span><button type="button" className="button button-secondary" onClick={() => { setBatchSourceId(null); setBatchTargetIds([]); }}>Cambiar origen</button><button type="button" className="button button-primary" disabled={!batchSourceId || !batchTargetIds.length} onClick={commitBatch}>Conectar {batchTargetIds.length} nodos</button><button type="button" className="button button-secondary" onClick={cancelBatch}>Cancelar</button></div>
+        </section>}
+        {batchFeedback && !batchMode && <p className="batch-connect-feedback" role="status">{batchFeedback}</p>}
         {loading ? <div className="graph-loading">Preparando el mapa conceptual…</div>
           : <div className="graph-canvas">
-            <ReactFlow nodes={renderedNodes} edges={edges}
+            <ReactFlow nodes={renderedNodes} edges={edges} nodesDraggable={!batchMode} nodesConnectable={!batchMode}
               onNodesChange={changes => { onNodesChange(changes); if (changes.some(change => ['position', 'add', 'remove', 'replace'].includes(change.type))) setSaved(false); }}
               onEdgesChange={changes => { onEdgesChange(changes); if (changes.some(change => ['add', 'remove', 'replace'].includes(change.type))) setSaved(false); }}
-              onConnect={connect}
-              onNodeClick={(_, node) => { setSelectedId(node.id); setSelectedEdgeId(null); }}
-              onEdgeClick={(_, edge) => { setSelectedEdgeId(edge.id); setSelectedId(null); }}
-              onPaneClick={() => { setSelectedId(null); setSelectedEdgeId(null); }}
+              onConnect={connection => { if (!batchMode) connect(connection); }}
+              onNodeClick={(_, node) => { if (batchMode) { clickBatchNode(node.id); return; } setSelectedId(node.id); setSelectedEdgeId(null); }}
+              onEdgeClick={(_, edge) => { if (batchMode) return; setSelectedEdgeId(edge.id); setSelectedId(null); }}
+              onPaneClick={() => { if (!batchMode) { setSelectedId(null); setSelectedEdgeId(null); } }}
               nodeTypes={nodeTypes} fitView minZoom={0.2} maxZoom={1.6}
               defaultEdgeOptions={{ type: 'smoothstep', style: { stroke: '#977b65', strokeWidth: 2 } }} colorMode="light">
               <Background variant={BackgroundVariant.Dots} gap={18} size={1} color="#DCD7CF"/>
@@ -497,7 +565,9 @@ function EditorContent() {
       <aside className="inspector">
         <div className="inspector-heading"><div className="eyebrow">PANEL DE PROPIEDADES</div><h2>{selected ? 'Editar concepto' : selectedEdge ? 'Relación argumentativa' : 'Información del esquema'}</h2></div>
         {selected ? <div className="inspector-fields">
+          <div className="concept-number-caption">NODO {String(nodes.findIndex(node => node.id === selected.id) + 1).padStart(2, '0')} DE {nodes.length}</div>
           <label>TIPO DE CONCEPTO<select value={selected.data.category} onChange={event => updateNode({ category: event.target.value as ConceptNodeType['data']['category'] })}>{categories.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
+          <label className="critical-toggle"><input type="checkbox" checked={selected.data.critical === true} onChange={event => updateNode({ critical: event.target.checked })}/><span><b>Marcar como nodo crítico</b><small>Destacado con borde y brillo especial también en las ediciones compartidas.</small></span></label>
           <label>TÍTULO DEL NODO<textarea className="concept-title-large" rows={3} maxLength={MAX_NODE_TITLE_CHARACTERS} value={selected.data.title} onChange={event => updateNode({ title: event.target.value })} aria-describedby="node-title-count"/></label>
            <small id="node-title-count" className={`concept-title-word-caption${!isValidNodeTitle(selected.data.title) ? ' concept-title-word-caption--invalid' : ''}`} role="status">{nodeTitleWordCount(selected.data.title)} / {MAX_NODE_TITLE_WORDS} palabras · máximo {MAX_NODE_TITLE_CHARACTERS} caracteres. {nodeTitleWordCount(selected.data.title) > MAX_NODE_TITLE_WORDS ? 'Ha superado el límite: acorte el título antes de guardar.' : 'Fin del límite: 100 palabras.'}</small>
           <label>DESCRIPCIÓN<textarea maxLength={240} rows={6} value={selected.data.description} onChange={event => updateNode({ description: event.target.value })}/></label>
