@@ -1,0 +1,5 @@
+# Sujeto a activación de CODEOWNERS/branch rules por administración del repositorio.
+* @ResearchUDG
+/firestore.rules @ResearchUDG
+/security/ @ResearchUDG
+/.github/workflows/ @ResearchUDG

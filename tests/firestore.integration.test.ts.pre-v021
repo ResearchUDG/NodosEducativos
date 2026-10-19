@@ -1,0 +1,74 @@
+import { afterAll, beforeAll, describe, it } from 'vitest';
+import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
+import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { readFileSync } from 'node:fs';
+
+let env: RulesTestEnvironment;
+const email = (person: string) => `${person}@alumnos.udg.mx`;
+const session = (uid: string, address = email(uid), verified = true) => env.authenticatedContext(uid, { email: address, email_verified: verified }).firestore();
+const draft = (db: import('firebase/firestore').Firestore, uid = 'professor', id = 'mapa') => doc(db, 'users', uid, 'diagrams', id);
+const publication = (db: import('firebase/firestore').Firestore, group = 'grupo1', id = 'mapa') => doc(db, 'groupPublications', group, 'diagrams', id);
+const diagram = () => ({ title: 'Mapa institucional', description: 'Lectura filosófica', nodes: [], edges: [], createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+const released = (uid = 'professor') => ({ ownerUid: uid, sourceDiagramId: 'mapa', title: 'Mapa institucional', description: 'Lectura filosófica', nodes: [], edges: [], publishedAt: serverTimestamp(), updatedAt: serverTimestamp() });
+
+beforeAll(async () => {
+  env = await initializeTestEnvironment({ projectId: 'nodos-educativos-rules-test', firestore: { rules: readFileSync('firestore.rules', 'utf8'), host: '127.0.0.1', port: 8080 } });
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    for (const [uid, role] of [['root', 'admin'], ['professor', 'professor'], ['student', 'student'], ['visitor', 'student'], ['blocked', 'student']] as const)
+      await setDoc(doc(db, 'access', uid), { role, active: uid !== 'blocked' });
+    await setDoc(doc(db, 'groups', 'grupo1'), { name: 'Seminario I', active: true, description: '', createdBy: 'root' });
+    await setDoc(doc(db, 'groups', 'grupo2'), { name: 'Seminario II', active: true, description: '', createdBy: 'root' });
+    await setDoc(doc(db, 'groups', 'suspendido'), { name: 'Grupo suspendido', active: false });
+    await setDoc(doc(db, 'memberships', 'student', 'groups', 'suspendido'), { groupId: 'suspendido', active: true });
+    for (const uid of ['professor', 'student'])
+      await setDoc(doc(db, 'memberships', uid, 'groups', 'grupo1'), { groupId: 'grupo1', active: true });
+    await setDoc(doc(db, 'users', 'professor', 'diagrams', 'mapa'), { title: 'Borrador privado', description: '', nodes: [], edges: [] });
+    await setDoc(doc(db, 'groupPublications', 'grupo1', 'diagrams', 'mapa'), { ownerUid: 'professor', sourceDiagramId: 'mapa', title: 'Publicación autorizada', description: '', nodes: [], edges: [] });
+    await setDoc(doc(db, 'groupPublications', 'suspendido', 'diagrams', 'otro'), { title: 'Contenido desactivado', ownerUid: 'root' });
+    await setDoc(doc(db, 'groupPublications', 'grupo2', 'diagrams', 'otro'), { ownerUid: 'root', sourceDiagramId: 'otro', title: 'Secreto otro grupo', description: '', nodes: [], edges: [] });
+  });
+});
+afterAll(async () => { await env?.cleanup(); });
+
+describe('Directorio y aislamiento RBAC/ABAC', () => {
+  it('profesor asignado puede leer su propio borrador', async () => assertSucceeds(getDoc(draft(session('professor')))));
+  it('estudiante no puede leer el borrador del profesor', async () => assertFails(getDoc(draft(session('student')))));
+  it('profesor no puede leer borrador ajeno', async () => assertFails(getDoc(draft(session('root')))));
+  it('estudiante puede leer la publicación de su grupo', async () => assertSucceeds(getDoc(publication(session('student')))));
+  it('estudiante puede listar únicamente la ruta de publicaciones de su grupo', async () => assertSucceeds(getDocs(collection(session('student'), 'groupPublications', 'grupo1', 'diagrams'))));
+  it('estudiante no puede leer ni listar publicaciones de otro grupo', async () => {
+    await assertFails(getDoc(publication(session('student'), 'grupo2', 'otro')));
+    await assertFails(getDocs(collection(session('student'), 'groupPublications', 'grupo2', 'diagrams')));
+  });
+  it('un grupo inactivo bloquea la lectura pese a conservar la membresía', async () => assertFails(getDoc(publication(session('student'), 'suspendido', 'otro'))));
+  it('un usuario institucional sin asignación no puede leer publicaciones', async () => assertFails(getDoc(publication(session('unassigned')))));
+  it('una cuenta suspendida pierde acceso aunque sea institucional', async () => assertFails(getDoc(publication(session('blocked')))));
+  it('no acepta correo no verificado aunque tenga roles', async () => assertFails(getDoc(publication(session('student', email('student'), false)))));
+  it('no acepta dominio confusamente similar aunque tenga roles', async () => assertFails(getDoc(publication(session('student', 'student@alumnos.udg.mx.example.com')))));
+  it('no acepta sesiones anónimas', async () => assertFails(getDoc(publication(env.unauthenticatedContext().firestore()))));
+  it('estudiante no puede crear esquemas privados', async () => assertFails(setDoc(draft(session('student'), 'student', 'nuevo'), diagram())));
+  it('estudiante no puede crear una publicación', async () => assertFails(setDoc(publication(session('student'), 'grupo1', 'creado'), { ...released('student'), sourceDiagramId: 'creado' })));
+  it('estudiante no puede modificarlas ni borrarlas', async () => {
+    await assertFails(updateDoc(publication(session('student')), { title: 'Modificado por alumno' }));
+    await assertFails(deleteDoc(publication(session('student'))));
+  });
+  it('profesor puede crear un borrador propio', async () => assertSucceeds(setDoc(draft(session('professor'), 'professor', 'nuevo'), diagram())));
+  it('profesor puede publicar copia de su borrador para grupo asignado', async () => assertSucceeds(setDoc(publication(session('professor')), released())));
+  it('profesor no puede publicar donde no es miembro', async () => assertFails(setDoc(publication(session('professor'), 'grupo2', 'mapa'), released())));
+  it('profesor no puede suplantar al autor', async () => assertFails(setDoc(publication(session('professor'), 'grupo1', 'mapa-falso'), { ...released('root'), sourceDiagramId: 'mapa-falso' })));
+  it('ningún usuario puede asignarse a sí mismo el rol admin', async () => assertFails(setDoc(doc(session('student'), 'access', 'student'), { role: 'admin', active: true })));
+  it('un profesor tampoco puede elevar sus privilegios', async () => assertFails(updateDoc(doc(session('professor'), 'access', 'professor'), { role: 'admin' })));
+  it('ni estudiante ni profesor pueden gestionar membresías', async () => {
+    await assertFails(setDoc(doc(session('student'), 'memberships', 'student', 'groups', 'grupo2'), { active: true, groupId: 'grupo2' }));
+    await assertFails(deleteDoc(doc(session('professor'), 'memberships', 'student', 'groups', 'grupo1')));
+  });
+  it('administrador puede conceder un rol subordinado con trazabilidad', async () => assertSucceeds(setDoc(doc(session('root'), 'access', 'newStudent'), { role: 'student', active: true, email: email('newStudent'), grantedBy: 'root', updatedAt: serverTimestamp() })));
+  it('el administrador tampoco puede crear otro admin desde la app', async () => assertFails(setDoc(doc(session('root'), 'access', 'hidden-admin'), { role: 'admin', active: true, email: email('hidden-admin'), grantedBy: 'root', updatedAt: serverTimestamp() })));
+  it('el administrador puede crear grupos', async () => assertSucceeds(setDoc(doc(session('root'), 'groups', 'grupo3'), { name: 'Nuevo seminario', description: '', active: true, createdBy: 'root', createdAt: serverTimestamp(), updatedAt: serverTimestamp() })));
+  it('el estudiante no puede crear grupos', async () => assertFails(setDoc(doc(session('student'), 'groups', 'falso'), { name: 'Grupo falso', description: '', active: true })));
+  it('un usuario autorizado puede solicitar acceso sin poder autoproclamarse profesor', async () => {
+    await assertSucceeds(setDoc(doc(session('unassigned'), 'accessRequests', 'unassigned'), { email: email('unassigned'), displayName: '', status: 'pending', createdAt: serverTimestamp() }));
+    await assertFails(updateDoc(doc(session('unassigned'), 'accessRequests', 'unassigned'), { status: 'approved' }));
+  });
+});

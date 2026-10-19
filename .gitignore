@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+.firebase/
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+.vscode/
+*.key
+*.pem
+*serviceAccount*.json
+!/.env.example

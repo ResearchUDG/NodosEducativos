@@ -1,0 +1,22 @@
+name: Reporte de fallo
+description: Incidencia reproducible sin datos sensibles
+labels: ['bug']
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Comportamiento observado
+      description: No incluya credenciales, correos reales ni datos de usuarios.
+    validations: { required: true }
+  - type: textarea
+    id: repro
+    attributes: { label: Pasos para reproducir }
+    validations: { required: true }
+  - type: textarea
+    id: expected
+    attributes: { label: Resultado esperado }
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severidad
+      options: ['Baja', 'Media', 'Alta', 'Crítica (notificar por canal privado)']

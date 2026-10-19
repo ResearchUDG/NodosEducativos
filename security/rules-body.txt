@@ -1,0 +1,257 @@
+    function accessPath(uid) { return /databases/$(database)/documents/access/$(uid); }
+    function membershipPath(uid, groupId) { return /databases/$(database)/documents/memberships/$(uid)/groups/$(groupId); }
+    function hasRole(role) {
+      return institutionalUser() && exists(accessPath(request.auth.uid))
+        && get(accessPath(request.auth.uid)).data.active == true
+        && get(accessPath(request.auth.uid)).data.role == role;
+    }
+    function approved() { return hasRole('admin') || hasRole('professor') || hasRole('student'); }
+    function admin() { return hasRole('admin'); }
+    function author() { return admin() || hasRole('professor'); }
+    function groupActive(groupId) {
+      return exists(/databases/$(database)/documents/groups/$(groupId))
+        && get(/databases/$(database)/documents/groups/$(groupId)).data.active == true;
+    }
+    function memberOf(groupId) {
+      return institutionalUser() && approved() && groupActive(groupId)
+        && exists(membershipPath(request.auth.uid, groupId))
+        && get(membershipPath(request.auth.uid, groupId)).data.active == true;
+    }
+    function canViewGroup(groupId) { return groupActive(groupId) && (admin() || memberOf(groupId)); }
+    function canPublish(groupId) { return groupActive(groupId) && (admin() || (hasRole('professor') && memberOf(groupId))); }
+    function validProfile() {
+      return request.resource.data.keys().hasOnly(['displayName','privacyVersion','createdAt','updatedAt'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() <= 90
+        && request.resource.data.privacyVersion == '2026-10-17'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+    }
+    function validDiagram() {
+      return request.resource.data.keys().hasOnly(['title','description','nodes','edges','createdAt','updatedAt'])
+        && request.resource.data.title is string
+        && request.resource.data.title.size() >= 3
+        && request.resource.data.title.size() <= 100
+        && request.resource.data.description is string
+        && request.resource.data.description.size() <= 500
+        && request.resource.data.nodes is list && request.resource.data.nodes.size() <= 80
+        && request.resource.data.edges is list && request.resource.data.edges.size() <= 160;
+    }
+    // Fase 3b: instantáneas privadas e inmutables. No son publicaciones.
+    function validDiagramRevision(uid, revisionId) {
+      return request.resource.data.keys().hasAll(['title','description','nodes','edges','kind','authorUid','savedAt'])
+        && request.resource.data.keys().hasOnly(['title','description','nodes','edges','kind','authorUid','savedAt'])
+        && request.resource.data.title is string
+        && request.resource.data.title.size() >= 3
+        && request.resource.data.title.size() <= 100
+        && request.resource.data.description is string
+        && request.resource.data.description.size() <= 500
+        && request.resource.data.nodes is list && request.resource.data.nodes.size() <= 80
+        && request.resource.data.edges is list && request.resource.data.edges.size() <= 160
+        && request.resource.data.authorUid == uid
+        && request.resource.data.savedAt == request.time
+        && ((revisionId == 'baseline' && request.resource.data.kind == 'baseline')
+          || (revisionId != 'baseline' && request.resource.data.kind == 'save'));
+    }
+    function validAccessGrant() {
+      return request.resource.data.keys().hasOnly(['role','active','email','grantedBy','updatedAt'])
+        && request.resource.data.keys().hasAll(['role','active','email','grantedBy','updatedAt'])
+        && request.resource.data.role in ['student','professor']
+        && request.resource.data.active is bool
+        && request.resource.data.email is string && request.resource.data.email.size() <= 254
+        && request.resource.data.grantedBy == request.auth.uid
+        && request.resource.data.updatedAt == request.time;
+    }
+    function validGroup() {
+      return request.resource.data.keys().hasOnly(['name','description','active','createdBy','createdAt','updatedAt'])
+        && request.resource.data.name is string && request.resource.data.name.size() >= 3
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.description is string && request.resource.data.description.size() <= 400
+        && request.resource.data.active is bool
+        && request.resource.data.createdBy is string;
+    }
+    function validMembership(uid, groupId) {
+      return request.resource.data.keys().hasOnly(['groupId','active','assignedBy','updatedAt'])
+        && request.resource.data.groupId == groupId
+        && request.resource.data.active is bool
+        && request.resource.data.assignedBy == request.auth.uid
+        && request.resource.data.updatedAt == request.time
+        && exists(accessPath(uid))
+        && get(accessPath(uid)).data.active == true
+        && exists(/databases/$(database)/documents/groups/$(groupId));
+    }
+    // INC-007: evitar 40 validaciones de posición que excedían el presupuesto
+    // de 1,000 expresiones. Los campos académicos no conceden permisos.
+    // La conversión de ida/vuelta obliga a que cada entrada sea texto y
+    // rechaza el separador § dentro de una etiqueta. La expresión regular
+    // comprueba de 2 a 90 caracteres por entrada (máximo 10 por categoría).
+    // Lista vacía permitida. Los controles de seguridad siguen siendo RBAC.
+    function validAcademicTagList(tags) {
+      return tags is list && tags.size() <= 10
+        && (tags.size() == 0 || (
+          tags.join('§').split('§') == tags
+          && tags.join('§').matches('^([^§]{2,90})(§[^§]{2,90})*$')
+        ));
+    }
+    function validAcademicTags(tags) {
+      return tags is map
+        && tags.keys().hasAll(['careers','degrees','postgraduate','certifications'])
+        && tags.keys().hasOnly(['careers','degrees','postgraduate','certifications'])
+        && validAcademicTagList(tags.careers)
+        && validAcademicTagList(tags.degrees)
+        && validAcademicTagList(tags.postgraduate)
+        && validAcademicTagList(tags.certifications);
+    }
+    // Ficha académica interna: campos científicos, no roles ni directorio público.
+    function validResearcherProfile(uid) {
+      return request.resource.data.keys().hasOnly(['ownerUid','academicTitle','institution','researchLines','biography','academicTags','createdAt','updatedAt'])
+        && request.resource.data.keys().hasAll(['ownerUid','academicTitle','institution','researchLines','biography','createdAt','updatedAt'])
+        && request.resource.data.ownerUid == uid
+        && request.resource.data.academicTitle is string && request.resource.data.academicTitle.size() <= 100
+        && request.resource.data.institution is string && request.resource.data.institution.size() <= 140
+        && request.resource.data.researchLines is string && request.resource.data.researchLines.size() <= 450
+        && request.resource.data.biography is string && request.resource.data.biography.size() <= 1200
+        && (!request.resource.data.keys().hasAny(['academicTags'])
+            || validAcademicTags(request.resource.data.academicTags))
+        && request.resource.data.updatedAt == request.time;
+    }
+    // Las publicaciones nuevas deben proceder de una versión privada ya guardada.
+    // Los lectores acceden solo a la COPIA publicada, nunca a /revisions.
+    function editionPath(diagramId, revisionId) {
+      return /databases/$(database)/documents/users/$(request.auth.uid)/diagrams/$(diagramId)/revisions/$(revisionId);
+    }
+    function validPublicationEdition() {
+      let source = editionPath(request.resource.data.sourceDiagramId, request.resource.data.sourceRevisionId);
+      return request.resource.data.sourceRevisionId is string
+        && request.resource.data.sourceRevisionId.size() >= 1
+        && request.resource.data.sourceRevisionId.size() <= 120
+        && request.resource.data.sourceRevisionSavedAt is timestamp
+        && exists(source)
+        && get(source).data.savedAt == request.resource.data.sourceRevisionSavedAt
+        && get(source).data.title == request.resource.data.title
+        && get(source).data.description == request.resource.data.description;
+    }
+    function validPublication() {
+      return request.resource.data.keys().hasOnly(['ownerUid','sourceDiagramId','sourceRevisionId','sourceRevisionSavedAt','title','description','nodes','edges','updatedAt','publishedAt'])
+        && request.resource.data.keys().hasAll(['ownerUid','sourceDiagramId','sourceRevisionId','sourceRevisionSavedAt','title','description','nodes','edges','updatedAt','publishedAt'])
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.sourceDiagramId is string
+        && request.resource.data.title is string && request.resource.data.title.size() >= 3
+        && request.resource.data.title.size() <= 100
+        && request.resource.data.description is string && request.resource.data.description.size() <= 500
+        && request.resource.data.nodes is list && request.resource.data.nodes.size() <= 80
+        && request.resource.data.edges is list && request.resource.data.edges.size() <= 160
+        && request.resource.data.updatedAt == request.time
+        && validPublicationEdition();
+    }
+    match /access/{uid} {
+      allow get: if institutionalUser() && (request.auth.uid == uid || admin());
+      allow list: if admin();
+      // El primer admin solo se crea desde Firebase Console (privilegio fuera del cliente).
+      // La aplicación nunca puede asignar ni alterar una cuenta admin.
+      allow create: if admin() && request.auth.uid != uid && validAccessGrant();
+      allow update: if admin() && request.auth.uid != uid
+        && resource.data.role != 'admin' && validAccessGrant();
+      allow delete: if false;
+    }
+    match /accessRequests/{uid} {
+      allow get: if institutionalUser() && (request.auth.uid == uid || admin());
+      allow list: if admin();
+      allow create: if institutionalUser() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['email','displayName','status','createdAt'])
+        && request.resource.data.keys().hasAll(['email','displayName','status','createdAt'])
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.displayName is string && request.resource.data.displayName.size() <= 90
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time;
+      allow update: if admin() && resource.data.status == 'pending'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','reviewedBy','reviewedAt'])
+        && request.resource.data.status in ['approved','rejected']
+        && request.resource.data.reviewedBy == request.auth.uid
+        && request.resource.data.reviewedAt == request.time;
+      allow delete: if false;
+    }
+    match /groups/{groupId} {
+      allow get: if admin() || canViewGroup(groupId);
+      allow list: if admin();
+      allow create: if admin() && validGroup()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow update: if admin() && validGroup()
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
+    match /memberships/{uid}/groups/{groupId} {
+      allow get, list: if admin() || (institutionalUser() && approved() && request.auth.uid == uid);
+      allow create, update: if admin() && validMembership(uid, groupId);
+      allow delete: if admin();
+    }
+    // Perfiles de investigador privados hasta que exista publicación editorial
+    // consentida. Las membresías en programas NO se gestionan desde esta ficha.
+    match /researcherProfiles/{uid} {
+      allow get: if admin() || (author() && request.auth.uid == uid);
+      allow list: if admin();
+      allow create: if author() && request.auth.uid == uid
+        && validResearcherProfile(uid)
+        && request.resource.data.createdAt == request.time;
+      allow update: if author() && request.auth.uid == uid
+        && validResearcherProfile(uid)
+        && resource.data.ownerUid == uid
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false;
+    }
+    match /users/{uid} {
+      allow get: if institutionalUser() && approved() && request.auth.uid == uid;
+      allow list: if false;
+      allow create: if institutionalUser() && approved() && request.auth.uid == uid && validProfile();
+      allow update: if institutionalUser() && approved() && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName','updatedAt'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() <= 90
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+      match /diagrams/{diagramId} {
+        allow get, list: if institutionalUser() && author() && request.auth.uid == uid;
+        allow create: if institutionalUser() && author() && request.auth.uid == uid
+          && validDiagram()
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+        allow update: if institutionalUser() && author() && request.auth.uid == uid
+          && validDiagram()
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if institutionalUser() && author() && request.auth.uid == uid;
+        // Solo el propietario autorizado consulta historial. No se puede editar
+        // una revisión existente ni eliminarla mientras viva su borrador.
+        match /revisions/{revisionId} {
+          allow get, list: if institutionalUser() && author() && request.auth.uid == uid;
+          allow create: if institutionalUser() && author() && request.auth.uid == uid
+            && exists(/databases/$(database)/documents/users/$(uid)/diagrams/$(diagramId))
+            && validDiagramRevision(uid, revisionId);
+          allow update: if false;
+          // Purga al borrar previamente el documento padre; no es restauración.
+          allow delete: if institutionalUser() && author() && request.auth.uid == uid
+            && !exists(/databases/$(database)/documents/users/$(uid)/diagrams/$(diagramId));
+        }
+      }
+    }
+    // PUBLICACIONES: copias explícitas del esquema, nunca borradores del profesor.
+    // Las consultas permanecen confinadas a /groupPublications/{groupId}/diagrams.
+    match /groupPublications/{groupId}/diagrams/{diagramId} {
+      allow get, list: if canViewGroup(groupId);
+      allow create: if canPublish(groupId) && validPublication()
+        && diagramId == request.resource.data.sourceDiagramId
+        && request.resource.data.publishedAt == request.time
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid)/diagrams/$(diagramId));
+      allow update: if canPublish(groupId) && validPublication()
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.sourceDiagramId == resource.data.sourceDiagramId
+        && request.resource.data.publishedAt == resource.data.publishedAt
+        && diagramId == request.resource.data.sourceDiagramId
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid)/diagrams/$(diagramId));
+      allow delete: if admin() || (canPublish(groupId) && resource.data.ownerUid == request.auth.uid);
+    }
+    match /{path=**} { allow read, write: if false; }
