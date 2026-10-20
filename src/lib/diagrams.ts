@@ -1,5 +1,6 @@
 import { collection, deleteDoc, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
+import type { OwnedEdition } from './publicationLifecycle';
 import { defaultEdges, defaultNodes } from './templates';
 import type { ConceptEdge, ConceptNode, Diagram } from './types';
 import { assertNoConcurrentEdit, snapshotFromDiagram, timestampKey, type DiagramRevision, type DiagramSnapshot } from './diagramHistory';
@@ -72,12 +73,36 @@ export async function listDiagramRevisions(uid: string, id: string): Promise<Dia
   return list;
 }
 
-export async function removeDiagram(uid: string, id: string): Promise<void> {
+/** Elimina el borrador y sus publicaciones activas reconocidas como UNA operación atómica.
+ * Una edición de otro autor nunca es elegible, aunque comparta el mismo título.
+ * La purga de revisiones debe ocurrir después: las reglas la autorizan al faltar el padre.
+ */
+export async function removeDiagram(uid: string, id: string, publications: OwnedEdition[] = []): Promise<void> {
   if (!db) throw new Error('Firebase no configurado.');
+  if (publications.length > 300) throw new Error('Demasiadas publicaciones; revise la eliminación con administración.');
+  const instance = db;
   const diagramRef = doc(diagramsCollection(uid), id);
-  const revisions = collection(db, 'users', uid, 'diagrams', id, 'revisions');
+  const refs = publications.map(p => {
+    if (p.id !== id || p.ownerUid !== uid || p.sourceDiagramId !== id || !p.groupId || p.groupId.includes('/')) {
+      throw new Error('Una de las publicaciones no corresponde a este borrador. No se eliminó nada.');
+    }
+    return doc(instance, 'groupPublications', p.groupId, 'diagrams', p.id);
+  });
+  await runTransaction(instance, async transaction => {
+    const draft = await transaction.get(diagramRef);
+    if (!draft.exists()) throw new Error('El borrador ya no existe. Retire sus publicaciones desde la gestión de publicaciones.');
+    const copies = [];
+    for (const ref of refs) copies.push(await transaction.get(ref));
+    for (const copy of copies) {
+      if (!copy.exists() || copy.data().ownerUid !== uid || copy.data().sourceDiagramId !== id) {
+        throw new Error('Una edición cambió durante la comprobación. No se eliminó nada.');
+      }
+    }
+    refs.forEach(ref => transaction.delete(ref));
+    transaction.delete(diagramRef);
+  });
+  const revisions = collection(instance, 'users', uid, 'diagrams', id, 'revisions');
   // La colección hija no se elimina automáticamente al borrar su padre.
-  await deleteDoc(diagramRef);
   while (true) {
     const remaining = await getDocs(query(revisions, limit(100)));
     if (remaining.empty) break;

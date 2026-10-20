@@ -13,6 +13,8 @@ import { compareDiagramSnapshots, revisionDate, snapshotFromDiagram, timestampKe
 import { buildRevisionTimeline, filterTimeline, type TimelineFilter } from '../lib/revisionTimeline';
 import { buildConceptHistory, describeConceptChanges, filterConceptHistory, type ConceptEventFilter } from '../lib/conceptHistory';
 import { useAuth } from '../lib/useAuth';
+import { useAccess } from '../lib/access';
+import { inspectOwnedEditions } from '../lib/publicationLifecycle';
 import { isValidNodeTitle, MAX_NODE_TITLE_CHARACTERS, MAX_NODE_TITLE_WORDS, nodeTitleWordCount } from '../lib/nodeTitle';
 import { guideStartIndex, numberedNodes, planMultipleConnections } from '../lib/graphEnhancements';
 import { ConceptNode } from '../components/ConceptNode';
@@ -40,6 +42,7 @@ function ReferenceList({ references }: { references?: AcademicReference[] }) {
 function EditorContent() {
   const { id } = useParams();
   const { user } = useAuth();
+  const { role } = useAccess();
   const navigate = useNavigate();
   const flow = useReactFlow<ConceptNodeType, ConceptEdge>();
   const [title, setTitle] = useState('Cargando esquema…');
@@ -368,10 +371,19 @@ function EditorContent() {
   }
 
   async function remove() {
-    if (!user || !id || !window.confirm('¿Eliminar este esquema permanentemente? Esta acción no se puede deshacer.')) return;
-    setBusy(true);
-    try { await removeDiagram(user.uid, id); navigate('/esquemas'); }
-    catch (reason) { setError(explainError(reason)); setBusy(false); }
+    if (!user || !id || busy) return;
+    setBusy(true); setError('');
+    try {
+      const copies = await inspectOwnedEditions(user.uid, id, role === 'admin');
+      const programs = [...new Set(copies.map(item => item.groupId))].length;
+      const notice = copies.length
+        ? `También se retirarán ${copies.length} publicación(es) de ${programs} programa(s) activo(s).`
+        : 'No se encontraron publicaciones suyas en los programas activos a los que tiene acceso.';
+      if (!window.confirm(`¿Eliminar «${title}» permanentemente?\n\n${notice}\n\nEsto borrará su borrador e historial y retirará esas publicaciones. No se puede deshacer.`)) return;
+      await removeDiagram(user.uid, id, copies);
+      navigate('/esquemas');
+    } catch (reason) { setError(explainError(reason)); }
+    finally { setBusy(false); }
   }
 
   const guidedNode = guiding && nodes.length ? nodes[step % nodes.length] : null;
