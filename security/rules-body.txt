@@ -317,7 +317,10 @@
     // PUBLICACIONES: copias explícitas del esquema, nunca borradores del profesor.
     // Las consultas permanecen confinadas a /groupPublications/{groupId}/diagrams.
     match /groupPublications/{groupId}/diagrams/{diagramId} {
-      allow get, list: if canViewGroup(groupId);
+      // Administradores pueden inspeccionar ediciones de programas inactivos
+      // para retirarlas al eliminar el esquema origen. Los alumnos no.
+      allow get: if canViewGroup(groupId) || admin();
+      allow list: if canViewGroup(groupId);
       allow create: if canPublish(groupId) && validPublication()
         && diagramId == request.resource.data.sourceDiagramId
         && request.resource.data.publishedAt == request.time

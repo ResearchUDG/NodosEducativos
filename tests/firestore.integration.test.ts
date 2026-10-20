@@ -1,4 +1,5 @@
-import { afterAll, beforeAll, describe, it } from 'vitest';
+import { afterAll, beforeAll, describe, it, expect } from 'vitest';
+import { deleteDraftAndPublishedCopies } from '../src/lib/publicationCascade';
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
 import { Timestamp, collection, deleteDoc, doc, getDoc, getDocs, runTransaction, serverTimestamp, setDoc, updateDoc, query, where } from 'firebase/firestore';
 import { readFileSync } from 'node:fs';
@@ -468,5 +469,55 @@ describe('Laboratorio estudiantil y solicitudes privadas por programa', () => {
     await assertSucceeds(updateDoc(requestRef(profDb),{status:'devuelto',reviewerUid:'professor',reviewNote:'Incluya referencias',reviewedAt:serverTimestamp()}));
     await assertFails(updateDoc(requestRef(profDb),{status:'revisado',reviewerUid:'professor',reviewNote:'',reviewedAt:serverTimestamp()}));
     await assertFails(deleteDoc(requestRef(profDb)));
+  });
+});
+
+
+// La regresión usa el MISMO método que invoca el editor, contra Firestore emulado.
+describe('Eliminación atómica de borrador y publicaciones', () => {
+  it('borra origen y dos copias en programas diferentes sin dejar huérfanas', async () => {
+    const db = session('root');
+    const id = 'eliminar-sin-huerfanas';
+    await assertSucceeds(setDoc(draft(db, 'root', id), diagram()));
+    await env.withSecurityRulesDisabled(async ctx => {
+      for (const groupId of ['grupo1', 'grupo2']) {
+        await setDoc(doc(ctx.firestore(), 'groupPublications', groupId, 'diagrams', id), {
+          ownerUid: 'root', sourceDiagramId: id, title: 'Dos ediciones', nodes: [], edges: [], description: '',
+        });
+      }
+    });
+    const expected = ['grupo1', 'grupo2'].map(groupId => ({groupId, id, ownerUid: 'root', sourceDiagramId: id, title: 'Dos ediciones'}));
+    await assertSucceeds(deleteDraftAndPublishedCopies(db, 'root', id, ['grupo1', 'grupo2'], expected));
+    const remaining = await Promise.all([getDoc(draft(db, 'root', id)), getDoc(publication(db, 'grupo1', id)), getDoc(publication(db, 'grupo2', id))]);
+    expect(remaining.every(item => !item.exists())).toBe(true);
+  });
+  it('inspecciona y retira ediciones de grupos inactivos desde una cuenta administradora', async () => {
+    const db = session('root');
+    const id = 'eliminar-del-grupo-inactivo';
+    await assertSucceeds(setDoc(draft(db, 'root', id), diagram()));
+    await env.withSecurityRulesDisabled(async ctx => {
+      await setDoc(doc(ctx.firestore(), 'groupPublications', 'suspendido', 'diagrams', id), {
+        ownerUid: 'root', sourceDiagramId: id, title: 'Edición histórica', nodes: [], edges: [], description: '',
+      });
+    });
+    await assertSucceeds(getDoc(publication(db, 'suspendido', id)));
+    await assertFails(getDoc(publication(session('student'), 'suspendido', id)));
+    await assertSucceeds(deleteDraftAndPublishedCopies(db,'root',id,['suspendido'],[
+      {groupId: 'suspendido',id,ownerUid:'root',sourceDiagramId:id,title:'Edición histórica'},
+    ]));
+    expect((await getDoc(publication(db,'suspendido',id))).exists()).toBe(false);
+  });
+  it('si cambió la lista de ediciones, cancela TODO sin borrar el borrador', async () => {
+    const db = session('root');
+    const id = 'cancelacion-atoma';
+    await assertSucceeds(setDoc(draft(db,'root',id),diagram()));
+    await env.withSecurityRulesDisabled(async ctx => {
+      await setDoc(doc(ctx.firestore(),'groupPublications','grupo1','diagrams',id), {
+        ownerUid:'root',sourceDiagramId:id,title:'Copia protegida',nodes:[],edges:[],description:'',
+      });
+    });
+    await expect(deleteDraftAndPublishedCopies(db,'root',id,['grupo1'],[])).rejects.toThrow(/cambiaron/);
+    expect((await getDoc(draft(db,'root',id))).exists()).toBe(true);
+    expect((await getDoc(publication(db,'grupo1',id))).exists()).toBe(true);
   });
 });

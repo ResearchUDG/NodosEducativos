@@ -12,7 +12,7 @@ function fail(message) { throw new Error(message); }
 function collectRemoveArgs() {
   const refs = [];
   for (let i=0;i<args.length;i++) {
-    if (args[i] !== '--remove') { if (args[i] !== '--list' && args[i] !== '--help') fail('Argumento desconocido: ' + args[i]); continue; }
+    if (args[i] !== '--remove') { if (args[i] !== '--list' && args[i] !== '--help' && args[i] !== '--orphans') fail('Argumento desconocido: ' + args[i]); continue; }
     const key=args[++i];
     if (!key || !/^[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+$/.test(key)) fail('Use --remove ID_GRUPO/ID_PUBLICACION');
     if (refs.includes(key)) fail('La publicación ' + key + ' está repetida.');
@@ -47,8 +47,10 @@ async function secret() {
 }
 function safeTimestamp(value){return value?.seconds != null ? `${value.seconds}:${value.nanoseconds||0}` : null;}
 async function main() {
-  if(args.includes('--help')) {console.log('USO:\n  node scripts/limpiar-publicaciones-2d.mjs --list\n  node scripts/limpiar-publicaciones-2d.mjs --remove GRUPO/PUBLICACION\n  node scripts/limpiar-publicaciones-2d.mjs --remove GRUPO/ID1 --remove GRUPO/ID2');return;}
+  if(args.includes('--help')) {console.log('USO:\n  node scripts/limpiar-publicaciones-2d.mjs --list\n  node scripts/limpiar-publicaciones-2d.mjs --orphans\n  node scripts/limpiar-publicaciones-2d.mjs --remove GRUPO/PUBLICACION\n  node scripts/limpiar-publicaciones-2d.mjs --remove GRUPO/ID1 --remove GRUPO/ID2');return;}
   const targets=collectRemoveArgs();
+  const orphanMode=args.includes('--orphans');
+  if(orphanMode && targets.length)fail('No mezcle --orphans con --remove.');
   const config=envConfig();
   const { initializeApp, deleteApp }=await import('firebase/app');
   const { getAuth, signInWithEmailAndPassword, signOut }=await import('firebase/auth');
@@ -104,8 +106,9 @@ async function main() {
       console.log(`\n${p.title}\n  Programa: ${p.group}\n  Clave: ${p.key}${p.orphan?'\n  ESTADO: borrador original eliminado':''}${identical.length>1?'\n  Nota: este título aparece en '+identical.length+' programas/publicaciones':''}`);
     }
     if(inactive)console.log(`\nAviso: ${inactive} programa(s) inactivo(s) no se pueden consultar con las reglas actuales; requieren revisión administrativa si se reactivan.`);
-    if(!targets.length) {console.log('\nVISTA PREVIA. No se modificó nada. Para retirar una, use --remove GRUPO/ID según la clave mostrada.');return;}
-    const selected=targets.map(key=>{const p=items.find(i=>i.key===key);if(!p)fail('No se encontró una publicación PROPIA y accesible: '+key+'. No se modificó nada.');return p;});
+    if(!targets.length && !orphanMode) {console.log('\nVISTA PREVIA. No se modificó nada. Use --orphans para retirar únicamente publicaciones sin borrador original.');return;}
+    const selected=orphanMode ? items.filter(p=>p.orphan) : targets.map(key=>{const p=items.find(i=>i.key===key);if(!p)fail('No se encontró una publicación PROPIA y accesible: '+key+'. No se modificó nada.');return p;});
+    if(!selected.length){console.log('No hay publicaciones huérfanas accesibles. No se modificó nada.');return;}
     console.log(`\nSE RETIRARÁN ${selected.length} PUBLICACIÓN(ES). Ningún borrador ni otra publicación será eliminado.`);
     selected.forEach(x=>console.log('  · '+x.key+' — '+x.group+' — '+x.title));
     const answer=await ask(`Escriba RETIRAR ${selected.length} para confirmar: `);

@@ -5,7 +5,7 @@ import { useAuth } from '../lib/useAuth';
 import { useAccess } from '../lib/access';
 import { createDiagram, listDiagrams, listDiagramRevisions } from '../lib/diagrams';
 import { revisionDate, type DiagramRevision } from '../lib/diagramHistory';
-import { assignedGroups, publishToGroup, publicationsInGroups, retractPublication, type GroupInfo, type Publication } from '../lib/groups';
+import { assignedGroups, publishToGroup, type GroupInfo } from '../lib/groups';
 import { explainError } from '../lib/errors';
 import type { Diagram } from '../lib/types';
 import { DiagramThumbnail } from '../components/DiagramThumbnail';
@@ -17,7 +17,6 @@ export function Dashboard() {
   const navigate = useNavigate();
   const [diagrams, setDiagrams] = useState<Diagram[]>([]);
   const [groups, setGroups] = useState<GroupInfo[]>([]);
-  const [publications, setPublications] = useState<Publication[]>([]);
   const [selectedGroups, setSelectedGroups] = useState<Record<string, string>>({});
   const [selectedNodes, setSelectedNodes] = useState<Record<string, string[]>>({});
   const [availableRevisions, setAvailableRevisions] = useState<Record<string, DiagramRevision[]>>({});
@@ -31,9 +30,8 @@ export function Dashboard() {
   useEffect(() => {
     if (!user) return;
     let active = true;
-    Promise.all([listDiagrams(user.uid), assignedGroups(user.uid, role === 'admin')]).then(async ([value, memberships]) => {
-      const publications = await publicationsInGroups(memberships);
-      if (active) { setDiagrams(value); setGroups(memberships); setPublications(publications.filter(p => p.ownerUid === user.uid)); }
+    Promise.all([listDiagrams(user.uid), assignedGroups(user.uid, role === 'admin')]).then(([value, memberships]) => {
+      if (active) { setDiagrams(value); setGroups(memberships); }
     }).catch((reason) => { if (active) setError(explainError(reason)); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [user, role]);
@@ -71,17 +69,8 @@ export function Dashboard() {
     setBusy(true); setError(''); setMessage('');
     try {
       await publishToGroup(user.uid, diagram.id, revision, groupId, visible);
-      const all = await publicationsInGroups(groups);
-      setPublications(all.filter(p => p.ownerUid === user.uid));
       setMessage(`Se compartió la versión elegida de «${revision.title}» con «${groupName}». Sus próximos cambios seguirán siendo privados hasta que vuelva a publicar.`);
     } catch (reason) { setError(explainError(reason)); }
-    finally { setBusy(false); }
-  }
-  async function retract(item: Publication) {
-    if (!user || item.ownerUid !== user.uid || !window.confirm('Retirar esta publicación del grupo. El borrador privado no se eliminará. ¿Continuar?')) return;
-    setBusy(true); setError(''); setMessage('');
-    try { await retractPublication(item.groupId, item.id); setPublications((prev) => prev.filter((p) => !(p.id === item.id && p.groupId === item.groupId))); setMessage('Publicación retirada del grupo.'); }
-    catch (reason) { setError(explainError(reason)); }
     finally { setBusy(false); }
   }
   const items = diagrams.filter((diagram) => `${diagram.title} ${diagram.description}`.toLowerCase().includes(search.toLowerCase()));
@@ -134,9 +123,6 @@ export function Dashboard() {
       <button className="diagram-card new-diagram" onClick={addDiagram} disabled={busy}><div className="new-icon"><Plus size={27}/></div><h3>Crear nuevo esquema</h3><p>Inicie un sistema con conceptos conectados, argumentos y fuentes.</p><span>CREAR ESQUEMA <ArrowRight size={16}/></span></button>
     </div>}
     {!loading && search && items.length === 0 && <p>No hay esquemas que coincidan con esa búsqueda.</p>}
-    <div className="governance-panel publication-management"><h2>Mis publicaciones vigentes</h2><p>Cada programa tiene su propia copia. Retire desde aquí las ediciones que ya no desea compartir, incluso cuando su borrador haya sido eliminado. Dos títulos iguales en programas distintos no necesariamente son duplicados.</p>
-      {publications.length === 0 ? <p>No hay sistemas publicados por esta cuenta.</p> : publications.map((p) => <div className="directory-person" key={`${p.groupId}/${p.id}`}><div className="person-details"><b>{p.title}</b><small>Programa: {groups.find((g) => g.id === p.groupId)?.name || p.groupId}</small>{Boolean(p.sourceRevisionSavedAt) && <small>Edición compartida: {revisionDate(p.sourceRevisionSavedAt)}</small>}{!diagrams.some(d => d.id === p.sourceDiagramId) && <small className="publication-orphan-label">Sin borrador original · puede retirar esta publicación</small>}</div><button disabled={busy} className="button button-secondary" onClick={() => void retract(p)}>Retirar publicación</button></div>)}
-    </div>
     <GroupReviewInbox/>
     <div className="getting-started"><div className="getting-icon"><Lightbulb size={23}/></div><div><h3>Un mapa para pensar, no solo para visualizar.</h3><p>La guía de lectura resalta nodos sin modificar sus posiciones. Las publicaciones se controlan por grupo.</p></div><Link to="/biblioteca" className="text-link"><BookOpenText size={16}/> Ver biblioteca publicada</Link></div>
   </>;

@@ -14,7 +14,7 @@ import { buildRevisionTimeline, filterTimeline, type TimelineFilter } from '../l
 import { buildConceptHistory, describeConceptChanges, filterConceptHistory, type ConceptEventFilter } from '../lib/conceptHistory';
 import { useAuth } from '../lib/useAuth';
 import { useAccess } from '../lib/access';
-import { inspectOwnedEditions } from '../lib/publicationLifecycle';
+import { deletionProgramIds, inspectOwnedEditions } from '../lib/publicationLifecycle';
 import { isValidNodeTitle, MAX_NODE_TITLE_CHARACTERS, MAX_NODE_TITLE_WORDS, nodeTitleWordCount } from '../lib/nodeTitle';
 import { guideStartIndex, numberedNodes, planMultipleConnections } from '../lib/graphEnhancements';
 import { ConceptNode } from '../components/ConceptNode';
@@ -374,13 +374,14 @@ function EditorContent() {
     if (!user || !id || busy) return;
     setBusy(true); setError('');
     try {
-      const copies = await inspectOwnedEditions(user.uid, id, role === 'admin');
+      const programIds = await deletionProgramIds(user.uid, role === 'admin');
+      const copies = await inspectOwnedEditions(user.uid, id, programIds);
       const programs = [...new Set(copies.map(item => item.groupId))].length;
       const notice = copies.length
         ? `También se retirarán ${copies.length} publicación(es) de ${programs} programa(s) activo(s).`
-        : 'No se encontraron publicaciones suyas en los programas activos a los que tiene acceso.';
+        : 'No se encontraron publicaciones vinculadas en los programas comprobados.';
       if (!window.confirm(`¿Eliminar «${title}» permanentemente?\n\n${notice}\n\nEsto borrará su borrador e historial y retirará esas publicaciones. No se puede deshacer.`)) return;
-      await removeDiagram(user.uid, id, copies);
+      await removeDiagram(user.uid, id, programIds, copies);
       navigate('/esquemas');
     } catch (reason) { setError(explainError(reason)); }
     finally { setBusy(false); }
