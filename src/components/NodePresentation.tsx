@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Background, BackgroundVariant, Handle, Position, ReactFlow, ReactFlowProvider,
   useReactFlow, type Edge, type NodeProps,
@@ -83,6 +83,7 @@ function PresentationInner({ title, description = '', nodes, edges, onClose, ove
   const flow = useReactFlow();
   const location = useLocation();
   const { theme } = useTheme();
+  const inspectorRef = useRef<HTMLElement | null>(null);
   const academicNodes = useMemo(() => numberedNodes(nodes), [nodes]);
   const categories = useMemo(() => presentationCategories(academicNodes), [academicNodes]);
 
@@ -137,7 +138,7 @@ function PresentationInner({ title, description = '', nodes, edges, onClose, ove
       style: {
         stroke: active ? activeStroke : idleStroke,
         strokeWidth: active ? 2.25 : 1.05,
-        opacity: focused ? (active ? .90 : .30) : .72,
+        opacity: focused && !active ? .14 : .72,
       },
       labelStyle: {
         fill: theme === 'dark' ? '#c6c6c6' : '#525252',
@@ -173,6 +174,15 @@ function PresentationInner({ title, description = '', nodes, edges, onClose, ove
     }, 140);
     return () => window.clearTimeout(timer);
   }, [expanded, overlay, flow]);
+
+  useEffect(() => {
+    if (!selected || (!expanded && !overlay)) return;
+    if (!window.matchMedia('(max-width: 1049px)').matches) return;
+    const timer = window.setTimeout(() => {
+      inspectorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 180);
+    return () => window.clearTimeout(timer);
+  }, [selected?.id, expanded, overlay]);
 
   const showWholeMap = () => {
     setSelectedId(null);
@@ -219,7 +229,6 @@ function PresentationInner({ title, description = '', nodes, edges, onClose, ove
     overlay ? 'p2d-presentation--overlay' : '',
     expanded ? 'p2d-presentation--expanded' : '',
     routeOpen ? 'p2d-presentation--route-open' : '',
-    selected ? 'p2d-presentation--focused' : '',
   ].filter(Boolean).join(' ')}>
     <header className="p2d-header">
       <div className="p2d-header-copy">
@@ -277,7 +286,7 @@ function PresentationInner({ title, description = '', nodes, edges, onClose, ove
         </ReactFlow>
       </div>
 
-      <aside className="p2d-inspector" aria-live="polite">
+      <aside ref={inspectorRef} className="p2d-inspector" aria-live="polite">
         {selected ? <>
           <div className="p2d-inspector-head">
             <div className="p2d-inspector-kicker">

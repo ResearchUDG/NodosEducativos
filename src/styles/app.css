@@ -1830,3 +1830,64 @@ body {
   }
 }
 /* === FASE 5.11 FULLSCREEN MOVIL END === */
+
+/* === FASE 5.12 FULLSCREEN MOVIL LECTURA BEGIN === */
+/*
+ * Corrige el fullscreen fijo en móvil:
+ * - el propio overlay se vuelve el contenedor desplazable;
+ * - iOS conserva scroll inercial;
+ * - al seleccionar un nodo, React lleva la ficha a la vista;
+ * - el mapa reduce ligeramente su altura en foco para dejar contexto visible.
+ */
+@media (max-width: 1049px) {
+  .p2d-presentation--expanded,
+  .p2d-presentation--overlay {
+    height: 100dvh;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  .p2d-presentation--expanded .p2d-stage,
+  .p2d-presentation--overlay .p2d-stage {
+    flex: none;
+    overflow: visible;
+  }
+
+  .p2d-presentation--expanded .p2d-inspector,
+  .p2d-presentation--overlay .p2d-inspector {
+    scroll-margin-top: 8px;
+  }
+}
+
+@media (max-width: 640px) {
+  .p2d-presentation--expanded .p2d-stage,
+  .p2d-presentation--overlay .p2d-stage {
+    grid-template-rows: minmax(340px, 46dvh) auto;
+  }
+
+  .p2d-presentation--expanded .p2d-map,
+  .p2d-presentation--overlay .p2d-map {
+    height: 46dvh;
+    min-height: 340px;
+  }
+
+  .p2d-presentation--expanded.p2d-presentation--focused .p2d-stage,
+  .p2d-presentation--overlay.p2d-presentation--focused .p2d-stage {
+    grid-template-rows: minmax(300px, 40dvh) auto;
+  }
+
+  .p2d-presentation--expanded.p2d-presentation--focused .p2d-map,
+  .p2d-presentation--overlay.p2d-presentation--focused .p2d-map {
+    height: 40dvh;
+    min-height: 300px;
+  }
+
+  .p2d-presentation--expanded .p2d-inspector,
+  .p2d-presentation--overlay .p2d-inspector {
+    scroll-margin-top: 0;
+  }
+}
+/* === FASE 5.12 FULLSCREEN MOVIL LECTURA END === */
