@@ -128,6 +128,8 @@ export function describeConceptChanges(
       description: `Cambió de «${label(old)}» a «${label(current)}».` });
     if (old.data.description !== current.data.description) changes.push({ category: 'concepto',
       description: 'Se modificó la explicación del concepto.' });
+    if (JSON.stringify(old.data.qa ?? []) !== JSON.stringify(current.data.qa ?? [])) changes.push({ category: 'concepto',
+      description: 'Se modificaron las preguntas y respuestas del concepto.' });
     if (old.data.category !== current.data.category) changes.push({ category: 'concepto',
       description: 'Se cambió el tipo de concepto.' });
     if ((old.data.critical === true) !== (current.data.critical === true)) changes.push({ category: 'concepto',

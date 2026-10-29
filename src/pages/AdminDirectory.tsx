@@ -9,6 +9,7 @@ import { formatDirectoryIdentity, identityOptionLabel } from '../lib/directoryId
 import { listAllProgramsForAdmin, listAccessRequests, type GroupInfo } from '../lib/groups';
 import { canAssignNewMember, normalizeProgramInput, visiblePrograms } from '../lib/programs';
 import { readAcademicTags, type ResearcherProfileFields } from '../lib/researcherProfile';
+import { GuestGroupManager } from '../components/GuestGroupManager';
 
 type Request = { id: string; email: string; displayName: string; status: string };
 type Principal = { id: string; role: string; active: boolean; email: string; displayName: string };
@@ -194,6 +195,7 @@ export function AdminDirectory() {
             </form> : <><div className="person-details"><b>{group.name}</b><small>{group.description || 'Sin descripción'}</small><span className={group.active ? 'program-status program-status-active' : 'program-status program-status-inactive'}>{group.active ? 'Activo' : 'Desactivado'}</span></div><div className="directory-actions"><button type="button" className="button button-secondary" disabled={busy || editingGroupId !== null} onClick={() => startEdit(group)}><Pencil size={15}/> Editar</button><button type="button" className={group.active ? 'button button-danger' : 'button button-secondary'} disabled={busy || editingGroupId !== null} onClick={() => void toggleProgram(group)}>{group.active ? <PauseCircle size={15}/> : <PlayCircle size={15}/>} {group.active ? 'Desactivar' : 'Reactivar'}</button></div></>}
           </div>)}</div>}
       </section>
+      <GuestGroupManager groups={groups}/>
       <section className="governance-panel governance-wide">
         <div className="program-catalog-heading"><div><h2><Users size={21}/> Profesores investigadores</h2>
           <p>Directorio interno de profesores activos y suspendidos. Las fichas son privadas: solo su titular puede editarlas y la administración puede consultarlas.</p></div>

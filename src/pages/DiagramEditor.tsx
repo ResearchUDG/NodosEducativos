@@ -3,7 +3,7 @@ import {
   addEdge, Background, BackgroundVariant, Controls, MiniMap, ReactFlow, ReactFlowProvider,
   useEdgesState, useNodesState, useReactFlow, type Connection,
 } from '@xyflow/react';
-import { ArrowLeft, ArrowRight, BookOpen, Check, CircleHelp, ExternalLink, GitCompareArrows, History, Pencil, Plus, RotateCcw, Save, Trash2, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, Check, CircleHelp, ExternalLink, GitCompareArrows, History, Pencil, Plus, RotateCcw, Save, Trash2, X, Palette, ImageDown, Maximize2 } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -13,16 +13,21 @@ import { compareDiagramSnapshots, revisionDate, snapshotFromDiagram, timestampKe
 import { buildRevisionTimeline, filterTimeline, type TimelineFilter } from '../lib/revisionTimeline';
 import { buildConceptHistory, describeConceptChanges, filterConceptHistory, type ConceptEventFilter } from '../lib/conceptHistory';
 import { useAuth } from '../lib/useAuth';
-import { useAccess } from '../lib/access';
+import { canAuthor, useAccess } from '../lib/access';
+import { useTheme } from '../lib/theme';
 import { deletionProgramIds, inspectOwnedEditions } from '../lib/publicationLifecycle';
 import { isValidNodeTitle, MAX_NODE_TITLE_CHARACTERS, MAX_NODE_TITLE_WORDS, nodeTitleWordCount } from '../lib/nodeTitle';
 import { guideStartIndex, numberedNodes, planMultipleConnections } from '../lib/graphEnhancements';
+import { blankNodeQA, MAX_NODE_QA, moveNodeQA } from '../lib/nodeQA';
 import { ConceptNode } from '../components/ConceptNode';
+import { StyledEdge } from '../components/StyledEdge';
 import { blankReference, MAX_NODE_REFERENCES, relationKeys, relationLabels, safeReferenceUrl, serializeAcademicGraph } from '../lib/academicGraph';
 import { isReferencePersisted, snapshotPersistedReferences } from '../lib/academicReferenceView';
-import type { AcademicReference, ArgumentRelation, ConceptEdge, ConceptNode as ConceptNodeType } from '../lib/types';
+import type { AcademicReference, ArgumentRelation, ConceptEdge, ConceptNode as ConceptNodeType, NodeQAItem } from '../lib/types';
 
+import { ImmersiveNodeExplorer } from '../components/ImmersiveNodeExplorer';
 const nodeTypes = { concept: ConceptNode };
+const edgeTypes = { styled: StyledEdge };
 const categories = [
   { id: 'pregunta', label: 'Pregunta' }, { id: 'tesis', label: 'Tesis' },
   { id: 'idea', label: 'Concepto' }, { id: 'fuente', label: 'Fuente' },
@@ -42,6 +47,7 @@ function ReferenceList({ references }: { references?: AcademicReference[] }) {
 function EditorContent() {
   const { id } = useParams();
   const { user } = useAuth();
+  const { theme } = useTheme();
   const { role } = useAccess();
   const navigate = useNavigate();
   const flow = useReactFlow<ConceptNodeType, ConceptEdge>();
@@ -61,6 +67,7 @@ function EditorContent() {
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
+  const [immersiveOpen, setImmersiveOpen] = useState(false);
   const [error, setError] = useState('');
   const [loadedStamp, setLoadedStamp] = useState('');
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -184,6 +191,26 @@ function EditorContent() {
       ? { ...node, data: { ...node.data, ...patch } } : node));
     setSaved(false);
     setError('');
+  }
+
+  function addNodeQA() {
+    if (!selected || (selected.data.qa?.length ?? 0) >= MAX_NODE_QA) return;
+    updateNode({ qa: [...(selected.data.qa ?? []), blankNodeQA()] });
+  }
+
+  function updateNodeQA(index: number, field: keyof NodeQAItem, value: string) {
+    if (!selected) return;
+    updateNode({ qa: (selected.data.qa ?? []).map((item, idx) => idx === index ? { ...item, [field]: value } : item) });
+  }
+
+  function removeNodeQA(index: number) {
+    if (!selected) return;
+    updateNode({ qa: (selected.data.qa ?? []).filter((_, idx) => idx !== index) });
+  }
+
+  function reorderNodeQA(index: number, delta: -1 | 1) {
+    if (!selected) return;
+    updateNode({ qa: moveNodeQA(selected.data.qa ?? [], index, delta) });
   }
 
   function addReference() {
@@ -389,6 +416,15 @@ function EditorContent() {
 
   const guidedNode = guiding && nodes.length ? nodes[step % nodes.length] : null;
   return <div className="editor-page">
+    <ImmersiveNodeExplorer
+      open={immersiveOpen}
+      title={title}
+      description={description}
+      nodes={nodes}
+      edges={edges}
+      initialNodeId={selectedId}
+      onClose={() => setImmersiveOpen(false)}
+    />
     <div className="editor-header">
       <div><Link className="back-link" to="/esquemas"><ArrowLeft size={16}/> VOLVER A MIS ESQUEMAS</Link>
         <div className="eyebrow">LABORATORIO ACADÉMICO / SISTEMA 2D</div>
@@ -403,6 +439,8 @@ function EditorContent() {
         </div>}
       </div>
       <div className="editor-header-actions">
+        <button className="button button-secondary" disabled={loading || !nodes.length} onClick={() => setImmersiveOpen(true)}><Maximize2 size={17}/> Explorar mapa</button>
+        {canAuthor(role) && <><Link className="button button-secondary" to={`/esquema/${id}/diseno`} title="DISEÑO VISUAL"><Palette size={17}/> Diseño visual</Link><Link className="button button-secondary" to={`/esquema/${id}/exportar`}><ImageDown size={17}/> Exportar PNG</Link></>}
         <button className="button button-secondary" disabled={busy || loading} aria-expanded={historyOpen} onClick={() => {
           if (historyOpen) setHistoryOpen(false);
           else { setHistoryScope('esquema'); setHistoryOpen(true); void refreshHistory(); }
@@ -559,11 +597,16 @@ function EditorContent() {
               onNodeClick={(_, node) => { if (batchMode) { clickBatchNode(node.id); return; } setSelectedId(node.id); setSelectedEdgeId(null); }}
               onEdgeClick={(_, edge) => { if (batchMode) return; setSelectedEdgeId(edge.id); setSelectedId(null); }}
               onPaneClick={() => { if (!batchMode) { setSelectedId(null); setSelectedEdgeId(null); } }}
-              nodeTypes={nodeTypes} fitView minZoom={0.2} maxZoom={1.6}
-              defaultEdgeOptions={{ type: 'smoothstep', style: { stroke: '#977b65', strokeWidth: 2 } }} colorMode="light">
-              <Background variant={BackgroundVariant.Dots} gap={18} size={1} color="#DCD7CF"/>
+              nodeTypes={nodeTypes} edgeTypes={edgeTypes} fitView minZoom={0.2} maxZoom={1.6}
+              defaultEdgeOptions={{ type: 'smoothstep', style: { stroke: theme === 'dark' ? '#a8a8a8' : '#977b65', strokeWidth: 2 } }} colorMode={theme}>
+              <Background variant={BackgroundVariant.Dots} gap={18} size={1} color={theme === 'dark' ? '#525252' : '#DCD7CF'}/>
               <Controls showInteractive={false}/>
-              <MiniMap zoomable pannable nodeColor={node => node.data.category === 'tesis' ? '#7D2944' : '#B9A185'}/>
+              <MiniMap zoomable pannable maskColor={theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(22,22,22,0.08)'} nodeColor={node => {
+                if (node.data.critical) return theme === 'dark' ? '#f1c21b' : '#b28600';
+                return node.data.category === 'tesis'
+                  ? (theme === 'dark' ? '#78a9ff' : '#7D2944')
+                  : (theme === 'dark' ? '#c6c6c6' : '#B9A185');
+              }}/>
             </ReactFlow>
           </div>}
         {guiding && <div className="guide-overlay">
@@ -584,6 +627,20 @@ function EditorContent() {
           <label>TÍTULO DEL NODO<textarea className="concept-title-large" rows={3} maxLength={MAX_NODE_TITLE_CHARACTERS} value={selected.data.title} onChange={event => updateNode({ title: event.target.value })} aria-describedby="node-title-count"/></label>
            <small id="node-title-count" className={`concept-title-word-caption${!isValidNodeTitle(selected.data.title) ? ' concept-title-word-caption--invalid' : ''}`} role="status">{nodeTitleWordCount(selected.data.title)} / {MAX_NODE_TITLE_WORDS} palabras · máximo {MAX_NODE_TITLE_CHARACTERS} caracteres. {nodeTitleWordCount(selected.data.title) > MAX_NODE_TITLE_WORDS ? 'Ha superado el límite: acorte el título antes de guardar.' : 'Fin del límite: 100 palabras.'}</small>
           <label>DESCRIPCIÓN<textarea maxLength={240} rows={6} value={selected.data.description} onChange={event => updateNode({ description: event.target.value })}/></label>
+          <section className="node-qa-editor">
+            <div className="node-qa-heading"><div><b>Preguntas y respuestas</b><small>Contenido pedagógico estructurado. La descripción de arriba puede conservarse.</small></div><span>{selected.data.qa?.length ?? 0}/{MAX_NODE_QA}</span></div>
+            {(selected.data.qa ?? []).map((item, index) => <div className="node-qa-card" key={`${selected.id}-qa-${index}`}>
+              <div className="node-qa-card-head"><b>Pregunta {index + 1}</b><div className="node-qa-card-actions">
+                <button type="button" title="Subir" disabled={index === 0} onClick={() => reorderNodeQA(index, -1)}>↑</button>
+                <button type="button" title="Bajar" disabled={index === (selected.data.qa?.length ?? 0) - 1} onClick={() => reorderNodeQA(index, 1)}>↓</button>
+                <button type="button" className="node-qa-remove" onClick={() => removeNodeQA(index)}>Quitar</button>
+              </div></div>
+              <label>PREGUNTA<textarea rows={2} maxLength={220} value={item.question} onChange={event => updateNodeQA(index, 'question', event.target.value)} placeholder="Ej. ¿Qué problema intenta resolver este concepto?"/></label>
+              <label>RESPUESTA<textarea rows={5} maxLength={700} value={item.answer} onChange={event => updateNodeQA(index, 'answer', event.target.value)} placeholder="Desarrolle la respuesta que verá el lector."/></label>
+            </div>)}
+            <button type="button" className="button button-secondary node-qa-add" disabled={(selected.data.qa?.length ?? 0) >= MAX_NODE_QA} onClick={addNodeQA}><Plus size={15}/> Añadir pregunta y respuesta</button>
+            <p className="node-qa-editor-note">Los pares incompletos no se guardan: complete pregunta y respuesta o elimine el par.</p>
+          </section>
           <div className="concept-history-launch">
             <button type="button" className="button button-secondary" disabled={busy || loading} onClick={() => openConceptHistory(selected.id)}>
               <History size={15}/> Ver evolución de este concepto

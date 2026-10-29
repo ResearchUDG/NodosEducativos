@@ -5,6 +5,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { useAuth } from '../lib/useAuth';
 import { useAccess, canAuthor } from '../lib/access';
+import { ThemeSwitch } from './ThemeSwitch';
 
 export function Layout() {
   const { user } = useAuth();
@@ -45,6 +46,7 @@ export function Layout() {
         <header className="topbar">
           <div className="topbar-leading"><button className="icon-button mobile-menu" onClick={() => setMenuOpen((v) => !v)} aria-label="Abrir menú"><Menu size={20}/></button><span>RESEARCHUDG</span><span className="topbar-separator">/</span><b>Área de trabajo</b></div>
           <div className="topbar-trailing">
+            <ThemeSwitch compact/>
             <Link className="icon-button topbar-help" to="/privacidad" title="Aviso de privacidad"><CircleHelp size={19} /></Link>
             <div className="profile-control">
               <button className="profile-button" aria-label="Menú de perfil" aria-expanded={profileOpen} onClick={() => setProfileOpen((v) => !v)}><span className="avatar">{user?.email?.charAt(0).toUpperCase() ?? 'U'}</span><span className="profile-brief"><b>Mi espacio</b><small>{roleName} · verificado</small></span><ChevronDown size={16}/></button>

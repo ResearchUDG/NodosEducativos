@@ -521,3 +521,107 @@ describe('Eliminación atómica de borrador y publicaciones', () => {
     expect((await getDoc(publication(db,'grupo1',id))).exists()).toBe(true);
   });
 });
+// Fase 4A: una superficie pública explícita y separada de las publicaciones académicas internas.
+describe('Grupos de invitados — acceso público mínimo y aislamiento', () => {
+  const publicStamp = Timestamp.fromMillis(1761000000000);
+  const guestCopy = () => ({
+    title: 'Mapa público de invitados', description: 'Copia pública controlada',
+    nodes: [], edges: [], publishedAt: publicStamp, updatedAt: publicStamp,
+  });
+
+  beforeAll(async () => {
+    await env.withSecurityRulesDisabled(async ctx => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'guestGroups', 'grupo1'), {
+        groupId: 'grupo1', slug: 'seminario-invitados', title: 'Seminario abierto',
+        description: 'Lecturas para invitados', guideEnabled: true, active: true, updatedAt: publicStamp,
+      });
+      await setDoc(doc(db, 'guestGroupSlugs', 'seminario-invitados'), {
+        groupId: 'grupo1', slug: 'seminario-invitados', active: true, updatedAt: publicStamp,
+      });
+      await setDoc(doc(db, 'guestGroups', 'grupo1', 'publications', 'mapa'), guestCopy());
+      await setDoc(doc(db, 'guestGroups', 'grupo2'), {
+        groupId: 'grupo2', slug: 'grupo-privado', title: 'Grupo privado', description: '',
+        guideEnabled: true, active: false, updatedAt: publicStamp,
+      });
+      await setDoc(doc(db, 'guestGroups', 'suspendido'), {
+        groupId: 'suspendido', slug: 'grupo-suspendido', title: 'Grupo suspendido', description: '',
+        guideEnabled: true, active: true, updatedAt: publicStamp,
+      });
+      await setDoc(doc(db, 'groupPublications', 'grupo1', 'diagrams', 'guest-mirror-source'), {
+        ownerUid: 'professor', sourceDiagramId: 'guest-mirror-source', title: 'Fuente pública',
+        description: 'Edición académica ya publicada', nodes: [], edges: [],
+        publishedAt: publicStamp, updatedAt: publicStamp,
+      });
+    });
+  });
+
+  it('una persona sin cuenta resuelve el slug, lee el grupo y enumera solo su copia pública', async () => {
+    const publicDb = env.unauthenticatedContext().firestore();
+    await assertSucceeds(getDoc(doc(publicDb, 'guestGroupSlugs', 'seminario-invitados')));
+    await assertSucceeds(getDoc(doc(publicDb, 'guestGroups', 'grupo1')));
+    await assertSucceeds(getDocs(collection(publicDb, 'guestGroups', 'grupo1', 'publications')));
+  });
+
+  it('el invitado sigue sin poder leer la publicación académica interna, borradores o perfiles', async () => {
+    const publicDb = env.unauthenticatedContext().firestore();
+    await assertFails(getDoc(doc(publicDb, 'groupPublications', 'grupo1', 'diagrams', 'mapa')));
+    await assertFails(getDoc(doc(publicDb, 'users', 'professor', 'diagrams', 'mapa')));
+    await assertFails(getDoc(doc(publicDb, 'researcherProfiles', 'professor')));
+  });
+
+  it('un grupo invitado desactivado o un programa suspendido deja de ser público', async () => {
+    const publicDb = env.unauthenticatedContext().firestore();
+    await assertFails(getDoc(doc(publicDb, 'guestGroups', 'grupo2')));
+    await assertFails(getDoc(doc(publicDb, 'guestGroups', 'suspendido')));
+  });
+
+  it('una persona anónima no puede escribir configuración ni publicaciones invitadas', async () => {
+    const publicDb = env.unauthenticatedContext().firestore();
+    await assertFails(setDoc(doc(publicDb, 'guestGroups', 'grupo1', 'publications', 'intruso'), guestCopy()));
+    await assertFails(setDoc(doc(publicDb, 'guestGroups', 'grupo2'), {
+      groupId: 'grupo2', slug: 'intruso-publico', title: 'Intruso', description: '', guideEnabled: true,
+      active: true, updatedAt: serverTimestamp(),
+    }));
+  });
+
+  it('un profesor autorizado puede reflejar exactamente una publicación académica existente', async () => {
+    const db = session('professor');
+    await assertSucceeds(setDoc(doc(db, 'guestGroups', 'grupo1', 'publications', 'guest-mirror-source'), {
+      title: 'Fuente pública', description: 'Edición académica ya publicada', nodes: [], edges: [],
+      publishedAt: publicStamp, updatedAt: publicStamp,
+    }));
+  });
+
+  it('un profesor no puede falsificar el contenido de la copia invitada', async () => {
+    const db = session('professor');
+    await assertFails(setDoc(doc(db, 'guestGroups', 'grupo1', 'publications', 'guest-mirror-source'), {
+      title: 'Título alterado', description: 'Edición académica ya publicada', nodes: [], edges: [],
+      publishedAt: publicStamp, updatedAt: publicStamp,
+    }));
+  });
+
+  it('solo administración puede configurar el acceso invitado y sus slugs', async () => {
+    const professor = session('professor');
+    await assertFails(setDoc(doc(professor, 'guestGroups', 'grupo2'), {
+      groupId: 'grupo2', slug: 'abierto-por-profesor', title: 'No permitido', description: '', guideEnabled: true,
+      active: true, updatedAt: serverTimestamp(),
+    }));
+
+    const adminDb = session('root');
+    await assertSucceeds(setDoc(doc(adminDb, 'guestGroups', 'grupo2'), {
+      groupId: 'grupo2', slug: 'seminario-publico-dos', title: 'Seminario público II', description: '',
+      guideEnabled: false, active: true, updatedAt: serverTimestamp(),
+    }));
+    await assertSucceeds(setDoc(doc(adminDb, 'guestGroupSlugs', 'seminario-publico-dos'), {
+      groupId: 'grupo2', slug: 'seminario-publico-dos', active: true, updatedAt: serverTimestamp(),
+    }));
+  });
+
+  it('el público no puede enumerar todos los slugs o todos los grupos invitados', async () => {
+    const publicDb = env.unauthenticatedContext().firestore();
+    await assertFails(getDocs(collection(publicDb, 'guestGroupSlugs')));
+    await assertFails(getDocs(collection(publicDb, 'guestGroups')));
+  });
+});
+

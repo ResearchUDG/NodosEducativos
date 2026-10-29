@@ -1,5 +1,6 @@
 import { collection, deleteDoc, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
+import { stripUndefinedForFirestore } from './firestoreSanitize';
 import type { OwnedEdition } from './publicationLifecycle';
 import { deleteDraftAndPublishedCopies } from './publicationCascade';
 import { defaultEdges, defaultNodes } from './templates';
@@ -27,12 +28,17 @@ export async function createDiagram(uid: string, title: string): Promise<string>
 }
 export async function saveDiagram(uid: string, id: string, value: { title: string; description: string; nodes: ConceptNode[]; edges: ConceptEdge[] }): Promise<void> {
   const reference = doc(diagramsCollection(uid), id);
-  await updateDoc(reference, { ...value, updatedAt: serverTimestamp() });
+  const clean = stripUndefinedForFirestore(value);
+  await updateDoc(reference, { ...clean, updatedAt: serverTimestamp() });
 }
 /**
  * Guardado atómico: conserva el borrador previo la primera vez, inserta la
  * nueva revisión inmutable y actualiza el borrador en una sola transacción.
  * Detecta una edición concurrente antes de escribir.
+ *
+ * Todo snapshot se sanea antes de tocar Firestore porque React Flow y los
+ * estilos visuales admiten propiedades opcionales con `undefined`, mientras
+ * Firestore las rechaza.
  */
 export async function saveDiagramWithHistory(
   uid: string, id: string, value: DiagramSnapshot, expectedUpdatedAt: string,
@@ -42,17 +48,18 @@ export async function saveDiagramWithHistory(
   const revisions = collection(db, 'users', uid, 'diagrams', id, 'revisions');
   const baseline = doc(revisions, 'baseline');
   const next = doc(revisions);
+  const cleanValue = stripUndefinedForFirestore(value);
   await runTransaction(db, async transaction => {
     const existing = await transaction.get(current);
     if (!existing.exists()) throw new Error('El esquema fue eliminado o no está disponible.');
     assertNoConcurrentEdit(expectedUpdatedAt, existing.data().updatedAt);
     const first = await transaction.get(baseline);
     if (!first.exists()) {
-      const previous = snapshotFromDiagram(existing.data() as Partial<Diagram>);
+      const previous = stripUndefinedForFirestore(snapshotFromDiagram(existing.data() as Partial<Diagram>));
       transaction.set(baseline, { ...previous, kind: 'baseline', authorUid: uid, savedAt: serverTimestamp() });
     }
-    transaction.set(next, { ...value, kind: 'save', authorUid: uid, savedAt: serverTimestamp() });
-    transaction.update(current, { ...value, updatedAt: serverTimestamp() });
+    transaction.set(next, { ...cleanValue, kind: 'save', authorUid: uid, savedAt: serverTimestamp() });
+    transaction.update(current, { ...cleanValue, updatedAt: serverTimestamp() });
   });
   const saved = await getDoc(current);
   if (!saved.exists()) throw new Error('No se pudo comprobar la versión guardada.');

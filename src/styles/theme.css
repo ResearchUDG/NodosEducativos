@@ -1,0 +1,1213 @@
+/* ==========================================================
+   FASE 5 · SISTEMA VISUAL CLARO / OSCURO
+   Capa de tema central. Mantiene compatibilidad con las clases
+   históricas mientras migra toda la interfaz a tokens semánticos.
+   ========================================================== */
+
+:root,
+html[data-theme='light'] {
+  --ui-background: #f4f4f4;
+  --ui-background-hover: #e8e8e8;
+  --ui-layer-01: #ffffff;
+  --ui-layer-02: #f4f4f4;
+  --ui-layer-03: #e8e8e8;
+  --ui-layer-accent: #edf5ff;
+  --ui-text-primary: #161616;
+  --ui-text-secondary: #525252;
+  --ui-text-helper: #6f6f6f;
+  --ui-text-placeholder: #a8a8a8;
+  --ui-border-subtle: #e0e0e0;
+  --ui-border-strong: #8d8d8d;
+  --ui-interactive: #0f62fe;
+  --ui-interactive-hover: #0353e9;
+  --ui-interactive-soft: #d0e2ff;
+  --ui-interactive-softest: #edf5ff;
+  --ui-link: #0f62fe;
+  --ui-focus: #0f62fe;
+  --ui-success: #198038;
+  --ui-success-soft: #defbe6;
+  --ui-warning: #f1c21b;
+  --ui-warning-soft: #fff8e1;
+  --ui-danger: #da1e28;
+  --ui-danger-soft: #fff1f1;
+  --ui-shadow: 0 1px 2px rgba(22,22,22,.08), 0 4px 16px rgba(22,22,22,.06);
+  --ui-shadow-raised: 0 10px 28px rgba(22,22,22,.12);
+  --ui-overlay: rgba(22,22,22,.48);
+  --ui-grid-dot: rgba(15,98,254,.10);
+
+  /* Alias heredados: permiten que las fases anteriores hereden el tema. */
+  --wine: var(--ui-interactive);
+  --wine-deep: var(--ui-interactive-hover);
+  --wine-bright: #4589ff;
+  --gold: #b28600;
+  --ink: var(--ui-text-primary);
+  --muted: var(--ui-text-secondary);
+  --line: var(--ui-border-subtle);
+  --surface: var(--ui-layer-01);
+  --canvas: var(--ui-background);
+
+  --p2d-bg-page: var(--ui-background);
+  --p2d-bg-surface: var(--ui-layer-01);
+  --p2d-bg-subtle: var(--ui-layer-02);
+  --p2d-bg-strong: var(--ui-layer-03);
+  --p2d-border-subtle: var(--ui-border-subtle);
+  --p2d-border-strong: var(--ui-border-strong);
+  --p2d-text-strong: var(--ui-text-primary);
+  --p2d-text-body: var(--ui-text-secondary);
+  --p2d-text-muted: var(--ui-text-helper);
+  --p2d-brand: var(--ui-interactive);
+  --p2d-brand-hover: var(--ui-interactive-hover);
+  --p2d-brand-soft: var(--ui-interactive-soft);
+  --p2d-brand-soft-2: var(--ui-interactive-softest);
+}
+
+html[data-theme='dark'] {
+  --ui-background: #161616;
+  --ui-background-hover: #353535;
+  --ui-layer-01: #262626;
+  --ui-layer-02: #393939;
+  --ui-layer-03: #525252;
+  --ui-layer-accent: #182d4d;
+  --ui-text-primary: #f4f4f4;
+  --ui-text-secondary: #c6c6c6;
+  --ui-text-helper: #a8a8a8;
+  --ui-text-placeholder: #8d8d8d;
+  --ui-border-subtle: #525252;
+  --ui-border-strong: #8d8d8d;
+  --ui-interactive: #0f62fe;
+  --ui-interactive-hover: #4589ff;
+  --ui-interactive-soft: #0043ce;
+  --ui-interactive-softest: #182d4d;
+  --ui-link: #78a9ff;
+  --ui-focus: #78a9ff;
+  --ui-success: #42be65;
+  --ui-success-soft: #173b26;
+  --ui-warning: #f1c21b;
+  --ui-warning-soft: #3a3217;
+  --ui-danger: #ff8389;
+  --ui-danger-soft: #4b1f24;
+  --ui-shadow: 0 1px 2px rgba(0,0,0,.34), 0 7px 22px rgba(0,0,0,.24);
+  --ui-shadow-raised: 0 12px 34px rgba(0,0,0,.42);
+  --ui-overlay: rgba(0,0,0,.68);
+  --ui-grid-dot: rgba(120,169,255,.16);
+
+  --wine: #78a9ff;
+  --wine-deep: #a6c8ff;
+  --wine-bright: #78a9ff;
+  --gold: #f1c21b;
+  --ink: var(--ui-text-primary);
+  --muted: var(--ui-text-secondary);
+  --line: var(--ui-border-subtle);
+  --surface: var(--ui-layer-01);
+  --canvas: var(--ui-background);
+
+  --p2d-bg-page: var(--ui-background);
+  --p2d-bg-surface: var(--ui-layer-01);
+  --p2d-bg-subtle: var(--ui-layer-02);
+  --p2d-bg-strong: var(--ui-layer-03);
+  --p2d-border-subtle: var(--ui-border-subtle);
+  --p2d-border-strong: var(--ui-border-strong);
+  --p2d-text-strong: var(--ui-text-primary);
+  --p2d-text-body: var(--ui-text-secondary);
+  --p2d-text-muted: var(--ui-text-helper);
+  --p2d-brand: #78a9ff;
+  --p2d-brand-hover: #a6c8ff;
+  --p2d-brand-soft: #0043ce;
+  --p2d-brand-soft-2: #182d4d;
+}
+
+html, body, #root { min-height: 100%; background: var(--ui-background); color: var(--ui-text-primary); }
+body { transition: background-color .16s ease, color .16s ease; }
+::selection { background: var(--ui-interactive-soft); color: var(--ui-text-primary); }
+
+/* Selector visible y persistente. */
+.theme-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-layer-02);
+  border-radius: 8px;
+  color: var(--ui-text-secondary);
+  flex: none;
+}
+.theme-switch button {
+  border: 0;
+  min-height: 30px;
+  padding: 0 9px;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 750;
+}
+.theme-switch button:hover { background: var(--ui-background-hover); color: var(--ui-text-primary); }
+.theme-switch button.is-active {
+  background: var(--ui-layer-01);
+  color: var(--ui-interactive);
+  box-shadow: 0 1px 3px rgba(0,0,0,.10);
+}
+.theme-switch button:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 1px; }
+.theme-switch--compact button { min-width: 34px; }
+.auth-theme-switch,.privacy-theme-switch,.verification-theme-switch { display:flex; justify-content:flex-end; margin-bottom:22px; }
+
+/* Estructura general. */
+.app-shell,.main-area,.content { background: var(--ui-background); color: var(--ui-text-primary); }
+.sidebar { background: var(--ui-layer-01); border-right-color: var(--ui-border-subtle); }
+.brand { color: var(--ui-text-primary); }
+.brand-symbol { background: var(--ui-interactive); box-shadow: none; }
+.brand-dot,.period { color: var(--ui-interactive); }
+.sidebar-eyebrow,.sidebar-version { color: var(--ui-text-helper); }
+.nav-link { color: var(--ui-text-secondary); }
+.nav-link svg,.nav-arrow { color: var(--ui-text-helper); }
+.nav-link:hover { background: var(--ui-layer-02); color: var(--ui-text-primary); }
+.nav-link--active { background: var(--ui-interactive-softest); color: var(--ui-link); border-left-color: var(--ui-interactive); }
+.nav-link--active svg { color: var(--ui-link); }
+.sidebar-footer { border-top-color: var(--ui-border-subtle); }
+.sidebar-footer p { color: var(--ui-text-helper); }
+.access-note { color: var(--ui-text-secondary); }
+.online-indicator,.live-dot { background: var(--ui-success); }
+.topbar { background: var(--ui-layer-01); border-bottom-color: var(--ui-border-subtle); }
+.topbar-leading { color: var(--ui-text-helper); }
+.topbar-leading b { color: var(--ui-text-primary); }
+.topbar-separator { color: var(--ui-border-strong); }
+.icon-button { color: var(--ui-text-secondary); }
+.icon-button:hover { background: var(--ui-layer-02); color: var(--ui-text-primary); }
+.profile-button { color: var(--ui-text-primary); }
+.profile-button>svg,.profile-brief small { color: var(--ui-text-helper); }
+.avatar { background: var(--ui-interactive-softest); color: var(--ui-link); }
+.profile-popover { background: var(--ui-layer-01); border-color: var(--ui-border-subtle); box-shadow: var(--ui-shadow-raised); }
+.popover-heading { color: var(--ui-text-secondary); border-bottom-color: var(--ui-border-subtle); }
+.popover-heading small { color: var(--ui-text-helper); }
+.profile-popover>a,.profile-popover>button { color: var(--ui-text-primary); }
+.profile-popover>a:hover,.profile-popover>button:hover { background: var(--ui-layer-02); }
+.site-footer { color: var(--ui-text-helper); border-top-color: var(--ui-border-subtle); background: var(--ui-background); }
+.site-footer a,.text-link,.link-button,.back-link { color: var(--ui-link); }
+.mobile-scrim { background: var(--ui-overlay); }
+
+/* Tipografía, botones y formularios. */
+.eyebrow { color: var(--ui-text-helper); }
+.page-intro p,.section-heading p,.privacy-lead { color: var(--ui-text-secondary); }
+.button-primary { background: var(--ui-interactive); border-color: var(--ui-interactive); color: #fff; }
+.button-primary:hover { background: var(--ui-interactive-hover); border-color: var(--ui-interactive-hover); }
+.button-secondary { background: var(--ui-layer-01); border-color: var(--ui-border-strong); color: var(--ui-text-primary); }
+.button-secondary:hover { background: var(--ui-layer-02); border-color: var(--ui-interactive); color: var(--ui-link); }
+.button-danger { background: var(--ui-danger-soft); color: var(--ui-danger); border-color: color-mix(in srgb,var(--ui-danger) 55%,var(--ui-border-subtle)); }
+input,textarea,select { color-scheme: inherit; }
+.input-icon,
+.inspector-fields input,.inspector-fields select,.inspector-fields textarea,
+.governance-form input,.governance-form textarea,.governance-form select,.diagram-publish select,
+.google-link-form input,.program-filter select,.diagram-history-compare select,
+.student-submit select,.student-review-actions textarea,.batch-connect-panel select,
+.export-controls input,.export-controls select,.guest-slug-input {
+  background: var(--ui-layer-01);
+  border-color: var(--ui-border-strong);
+  color: var(--ui-text-primary);
+}
+.input-icon input { color: var(--ui-text-primary); }
+input::placeholder,textarea::placeholder { color: var(--ui-text-placeholder); }
+input:focus-visible,textarea:focus-visible,select:focus-visible { outline-color: var(--ui-focus); }
+
+/* Superficies compartidas: tarjetas, paneles, bibliotecas, gobernanza e historial. */
+.metric,.diagram-card,.verify-card,.profile-card,.profile-form,.graph-region,.concept,.guide-overlay,.inspector,
+.governance-panel,.publication-canvas,.button-google,.academic-tag-editor,.published-node-sources,
+.diagram-history-panel,.diagram-history-metrics span,.diagram-timeline-filter,.diagram-timeline-card,
+.study-reading-panel,.study-source-card,.trajectory-section,.trajectory-filter,.trajectory-card,
+.student-diagram-card,.student-new-card,.student-review-graph,.student-review-sources,
+.graph-toolbar .batch-connect-launch,.guest-public-header,.guest-public-footer,.guest-group-badge,
+.guest-public-unavailable,.guest-reader .publication-canvas,.guest-program-choice,.guest-option,
+.guest-figure-sheet,.guest-figure-node,.visual-designer-canvas,.visual-style-panel,.export-controls,
+.floating-editor-panel,.node-qa-reading-item,.node-qa-card-actions button,.empty-state,.role-summary {
+  background: var(--ui-layer-01);
+  border-color: var(--ui-border-subtle);
+  color: var(--ui-text-primary);
+}
+.diagram-card:hover,.trajectory-card:hover { box-shadow: var(--ui-shadow-raised); }
+.diagram-thumb,.student-diagram-thumb,.guest-figure-canvas,.export-sheet-wrap { background: var(--ui-layer-02); border-color: var(--ui-border-subtle); }
+.diagram-thumb-grid { background-image: radial-gradient(var(--ui-border-strong) .75px,transparent .75px); }
+.preview-node { background: var(--ui-layer-01); border-color: var(--ui-border-strong); }
+.diagram-card-content p,.metric small,.publication-version-help,.publication-edition-label,
+.trajectory-hero p,.trajectory-hero small,.trajectory-card p,.student-diagram-card p,.student-new-card p,
+.inspector-tip,.floating-help,.visual-owner-note { color: var(--ui-text-secondary); }
+.card-bottom,.diagram-card-content .eyebrow,.trajectory-filter--active { color: var(--ui-link); }
+.role-summary { box-shadow: none; }
+.alert { background: var(--ui-layer-02); border-color: var(--ui-border-subtle); color: var(--ui-text-primary); }
+.alert-success { background: var(--ui-success-soft); border-color: var(--ui-success); color: var(--ui-text-primary); }
+.alert-warning { background: var(--ui-warning-soft); border-color: #b28600; color: var(--ui-text-primary); }
+.alert-error { background: var(--ui-danger-soft); border-color: var(--ui-danger); color: var(--ui-text-primary); }
+
+/* Autenticación y pantallas de acceso. */
+.auth-layout,.verification-screen { background: var(--ui-background); color: var(--ui-text-primary); }
+.auth-panel { background: var(--ui-layer-01); color: var(--ui-text-primary); }
+.auth-content h2,.verify-card h1 { color: var(--ui-text-primary); }
+.auth-subtitle,.auth-privacy,.form-note,.google-auth-help { color: var(--ui-text-secondary); }
+.auth-switch { background: var(--ui-layer-02); border-color: var(--ui-border-subtle); }
+.auth-switch button { color: var(--ui-text-secondary); }
+.auth-switch button.selected { background: var(--ui-layer-01); color: var(--ui-link); }
+.button-google { border-color: var(--ui-border-strong); color: var(--ui-text-primary); }
+.button-google:hover { background: var(--ui-layer-02); border-color: var(--ui-interactive); }
+.google-auth-divider:before,.google-auth-divider:after { background: var(--ui-border-subtle); }
+.google-auth-divider span { background: var(--ui-layer-01); color: var(--ui-text-helper); }
+.secure-note { background: var(--ui-success-soft); border-color: color-mix(in srgb,var(--ui-success) 45%,var(--ui-border-subtle)); color: var(--ui-text-primary); }
+.verify-card { box-shadow: var(--ui-shadow-raised); }
+
+/* Público / invitados. */
+.guest-public-shell,.guest-public-content { background: var(--ui-background); color: var(--ui-text-primary); }
+.guest-public-brand { color: var(--ui-text-primary); }
+.guest-public-mark { background: var(--ui-interactive); color:#fff; }
+.guest-access-pill { background: var(--ui-interactive-softest); color: var(--ui-link); border-color: var(--ui-interactive-soft); }
+.guest-card-action,.guest-public-link a { color: var(--ui-link); }
+.guest-public-footer a { color: var(--ui-link); }
+
+/* Editor y diseñador. */
+.editor-header p,.editor-header .back-link { color: var(--ui-text-secondary); }
+.graph-region,.visual-designer-canvas,.student-review-graph {
+  background-color: var(--ui-layer-01);
+  background-image: radial-gradient(var(--ui-grid-dot) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+.inspector,.visual-style-panel { background: var(--ui-layer-01); }
+.inspector-tabs,.graph-toolbar { border-color: var(--ui-border-subtle); background: var(--ui-layer-01); }
+.visual-node:not(.visual-node--critical) { background: var(--ui-layer-01); color: var(--ui-text-primary); border-color: var(--ui-border-strong); }
+.visual-node p,.visual-node-meta,.concept-reference-count { color: var(--ui-text-secondary); }
+.visual-node--solid:not(.visual-node--critical) { background: color-mix(in srgb,var(--node-accent) 18%,var(--ui-layer-01)); }
+.visual-node--rounded:not(.visual-node--critical) { border-color: color-mix(in srgb,var(--node-accent) 65%,var(--ui-layer-01)); }
+.visual-node--glass:not(.visual-node--critical) { background: color-mix(in srgb,var(--ui-layer-01) 86%,transparent); border-color: color-mix(in srgb,var(--ui-text-primary) 16%,transparent); }
+.visual-workspace--fullscreen { background: var(--ui-background); }
+.visual-workspace--fullscreen .editor-header { background: color-mix(in srgb,var(--ui-background) 94%,transparent); }
+.floating-editor-panel { box-shadow: var(--ui-shadow-raised); }
+.floating-editor-panel__bar { background: linear-gradient(180deg,var(--ui-layer-01),var(--ui-layer-02)); border-bottom-color: var(--ui-border-subtle); }
+.floating-editor-panel__title { color: var(--ui-link); }
+.floating-editor-panel__title strong { color: var(--ui-text-primary); }
+.floating-editor-panel__title span,.floating-editor-panel__actions button { color: var(--ui-text-secondary); }
+.floating-editor-panel__actions button:hover { background: var(--ui-interactive-softest); color: var(--ui-link); }
+.export-sheet-wrap { background: var(--ui-layer-02); }
+
+/* React Flow compartido. */
+.react-flow__controls { border: 1px solid var(--ui-border-subtle); box-shadow: var(--ui-shadow); }
+.react-flow__controls-button { background: var(--ui-layer-01); border-color: var(--ui-border-subtle); color: var(--ui-text-primary); fill: currentColor; }
+.react-flow__controls-button:hover { background: var(--ui-layer-02); }
+.react-flow__minimap { background: var(--ui-layer-01); border: 1px solid var(--ui-border-subtle); }
+
+/* Presentación 2D pública: mismos tokens que el resto de la aplicación. */
+.p2d-presentation { background: var(--ui-layer-01); color: var(--ui-text-primary); border-color: var(--ui-border-subtle); }
+.p2d-header,.p2d-contextbar,.p2d-stage { background: var(--ui-layer-01); border-color: var(--ui-border-subtle); }
+.p2d-header { background: linear-gradient(180deg,var(--ui-layer-01),var(--ui-layer-01)); }
+.p2d-header h1 { color: var(--ui-text-primary); }
+.p2d-header-copy>p,.p2d-back,.p2d-legend { color: var(--ui-text-secondary); }
+.p2d-stat { background: var(--ui-layer-02); border-color: var(--ui-border-subtle); color: var(--ui-text-secondary); }
+.p2d-filter-row button { background: var(--ui-layer-01); border-color: var(--ui-border-strong); color: var(--ui-text-secondary); }
+.p2d-filter-row button:hover:not(.is-active) { background: var(--ui-interactive-softest); border-color: var(--ui-link); color: var(--ui-link); }
+.p2d-map {
+  background:
+    radial-gradient(circle at 1px 1px,var(--ui-grid-dot) 1px,transparent 0) 0 0 / 24px 24px,
+    var(--ui-layer-01);
+}
+.p2d-map-hint { background: color-mix(in srgb,var(--ui-layer-01) 94%,transparent); border-color: var(--ui-border-subtle); color: var(--ui-text-secondary); }
+.p2d-node:not(.p2d-node--critical) { background: var(--ui-layer-01); border-color: var(--ui-border-strong); border-left-color: var(--ui-interactive); color: var(--ui-text-primary); }
+.p2d-node strong,.p2d-node .title { color: var(--ui-text-primary); }
+.p2d-node-kicker,.p2d-node-meta,.p2d-node .meta,.p2d-node .eyebrow { color: var(--ui-text-secondary); }
+.p2d-node--nearby:not(.p2d-node--selected):not(.p2d-node--critical) { background: var(--ui-interactive-softest); border-color: #78a9ff; border-left-color: var(--ui-interactive); }
+.p2d-inspector,.p2d-inspector-scroll { background: var(--ui-layer-02); border-color: var(--ui-border-subtle); }
+.p2d-inspector-head,.p2d-inspector-header,.p2d-reading-section { border-color: var(--ui-border-subtle); }
+.p2d-inspector h2,.p2d-inspector-header h2,.p2d-inspector-header h3 { color: var(--ui-text-primary); }
+.p2d-description,.p2d-empty { color: var(--ui-text-secondary); }
+.p2d-panel-block,.p2d-connection-card,.p2d-source-card,.p2d-qa-card,.p2d-empty-inspector,
+.p2d-stepper,.p2d-step-button,.p2d-connection-list button,.p2d-reference-list article,.node-qa-reading-item {
+  background: var(--ui-layer-01);
+  border-color: var(--ui-border-subtle);
+  color: var(--ui-text-primary);
+}
+.p2d-connection-list span,.p2d-reference-list span,.p2d-reference-list small,.node-qa-reading-item p { color: var(--ui-text-secondary); }
+.p2d-connection-list b,.p2d-reference-list a { color: var(--ui-link); }
+.p2d-stepper { border-top-color: var(--ui-border-subtle); }
+.p2d-stepper button { background: var(--ui-layer-01); border-color: var(--ui-border-strong); color: var(--ui-text-primary); }
+.p2d-stepper button:last-child { background: var(--ui-interactive); border-color: var(--ui-interactive); color:#fff; }
+.p2d-route { background: #161616; }
+html[data-theme='dark'] .p2d-route { background:#0b0b0b; }
+.p2d-map .react-flow__controls-button { background: var(--ui-layer-01); border-color: var(--ui-border-subtle); color: var(--ui-text-primary); }
+.p2d-map .react-flow__minimap { background: color-mix(in srgb,var(--ui-layer-01) 94%,transparent); border-color: var(--ui-border-subtle); }
+
+/* La criticidad conserva una diferencia semántica de forma y color en ambos temas. */
+html[data-theme='dark'] .p2d-node--critical,
+html[data-theme='dark'] .visual-node--critical,
+html[data-theme='dark'] .guest-figure-node--critical {
+  background: #3a3217 !important;
+  border-color: #f1c21b !important;
+  color: #fff4c2;
+}
+html[data-theme='dark'] .p2d-node--critical strong,
+html[data-theme='dark'] .p2d-node--critical .title,
+html[data-theme='dark'] .p2d-node--critical .meta,
+html[data-theme='dark'] .p2d-node--critical .eyebrow,
+html[data-theme='dark'] .visual-node--critical .visual-node-meta { color:#fff4c2; }
+
+/* Privacidad y lectura larga. */
+.narrow-page { color: var(--ui-text-primary); }
+.privacy-page section { border-color: var(--ui-border-subtle); }
+.privacy-page section p,.privacy-bottom p { color: var(--ui-text-secondary); }
+.privacy-bottom { background: var(--ui-layer-01); border-color: var(--ui-border-subtle); }
+
+@media (max-width: 900px) {
+  .theme-switch:not(.theme-switch--compact) span { display:none; }
+  .topbar { padding-inline: 18px; }
+}
+
+@media (max-width: 650px) {
+  .theme-switch--compact span { display:none; }
+  .theme-switch button { padding-inline:8px; }
+  .auth-theme-switch,.privacy-theme-switch,.verification-theme-switch { margin-bottom:16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body { transition:none; }
+}
+
+/* Ajustes de componentes con fondos históricos muy específicos. */
+.dashboard-feature {
+  background: linear-gradient(122deg,#0b3b8f,#0f62fe 68%,#4589ff);
+  color:#fff;
+}
+.dashboard-feature:before { background: radial-gradient(circle at 90% 30%,rgba(255,255,255,.16),transparent 42%); }
+.feature-copy p { color:#d0e2ff; }
+.feature-copy em,.feature-link { color:#ffffff; }
+.getting-started { background: var(--ui-layer-01); border-color: var(--ui-border-subtle); color: var(--ui-text-primary); }
+.getting-started p { color: var(--ui-text-secondary); }
+.getting-icon { background: var(--ui-interactive-softest); color: var(--ui-link); }
+.role-summary,.readonly-banner { background: var(--ui-layer-01); border-color: var(--ui-border-subtle); color: var(--ui-text-primary); }
+.role-summary p,.readonly-banner p { color: var(--ui-text-secondary); }
+.graph-toolbar { background: var(--ui-layer-01); border-color: var(--ui-border-subtle); color: var(--ui-text-helper); }
+.graph-toolbar button,.graph-toolbar .batch-connect-launch { background: var(--ui-layer-02); border-color: var(--ui-border-subtle); color: var(--ui-link); }
+.graph-toolbar .batch-connect-launch--active { background: var(--ui-interactive-softest); border-color: var(--ui-interactive); }
+.student-review-list article,.student-review-detail { background: var(--ui-layer-01); border-color: var(--ui-border-subtle); color: var(--ui-text-primary); }
+.student-review-list article span { color: var(--ui-text-secondary); }
+.student-card-body small,.student-card-body span,.student-submit h3,.student-new-card { color: var(--ui-link); }
+.student-submit { border-top-color: var(--ui-border-subtle); }
+.student-review-actions { border-top-color: var(--ui-border-subtle); }
+.guest-group-hero>div:first-child>p { color: var(--ui-text-secondary); }
+
+.auth-story {
+  background: linear-gradient(145deg,#0b1f3a,#0f3f8c 58%,#0f62fe);
+  color:#fff;
+}
+.auth-story h1 em { color:#a6c8ff; }
+.auth-story-body>p { color:#d0e2ff; }
+.auth-story-footer { color:#a6c8ff; }
+.auth-story-art { color:#78a9ff; }
+html[data-theme='dark'] .auth-story {
+  background: linear-gradient(145deg,#050505,#101820 54%,#0b3b8f);
+}
+
+html[data-theme='dark'] .diagram-card,
+html[data-theme='dark'] .metric,
+html[data-theme='dark'] .trajectory-section,
+html[data-theme='dark'] .trajectory-card,
+html[data-theme='dark'] .study-reading-panel,
+html[data-theme='dark'] .guest-figure-sheet,
+html[data-theme='dark'] .floating-editor-panel {
+  box-shadow: none;
+}
+
+/* ==========================================================
+   FASE 5.1 · CORRECCIÓN DE CONTRASTE EN PANELES ACADÉMICOS
+   Elimina superficies heredadas claras dentro del tema oscuro.
+   ========================================================== */
+
+/* Alias de compatibilidad usados por componentes de fases anteriores. */
+:root,
+html[data-theme='light'],
+html[data-theme='dark'] {
+  --panel: var(--ui-layer-01);
+  --surface-soft: var(--ui-layer-02);
+}
+
+/* Trayectoria del investigador. */
+.researcher-profile-meta {
+  background: var(--ui-layer-02);
+  border: 1px solid var(--ui-border-subtle);
+  color: var(--ui-text-secondary);
+}
+
+.academic-tags-section {
+  background: var(--ui-layer-02);
+  border-color: var(--ui-border-subtle);
+  color: var(--ui-text-primary);
+}
+
+.academic-tags-section > h3 { color: var(--ui-text-primary); }
+.academic-tags-section > p { color: var(--ui-text-secondary); }
+.academic-tag-editor {
+  background: var(--ui-layer-01);
+  border-color: var(--ui-border-subtle);
+  color: var(--ui-text-primary);
+}
+.academic-tag-heading span,
+.academic-tag-empty { color: var(--ui-text-helper); }
+
+.academic-tag-chip {
+  background: var(--ui-interactive-softest);
+  border-color: color-mix(in srgb,var(--ui-interactive) 34%,var(--ui-border-subtle));
+  color: var(--ui-link);
+}
+.academic-tag-chip button {
+  background: color-mix(in srgb,var(--ui-interactive) 22%,var(--ui-layer-02));
+  color: var(--ui-text-primary);
+}
+.academic-tag-chip button:hover:not(:disabled) {
+  background: var(--ui-interactive);
+  color: #fff;
+}
+.academic-tag-chip button:focus-visible { outline-color: var(--ui-focus); }
+
+.academic-legacy-details {
+  border-color: var(--ui-border-strong);
+  background: var(--ui-layer-01);
+  color: var(--ui-text-primary);
+}
+.academic-legacy-details p { color: var(--ui-text-secondary); }
+
+/* Directorio académico: la ficha usaba --panel con fallback blanco. */
+.researcher-roster-card {
+  background: var(--ui-layer-01);
+  border-color: var(--ui-border-subtle);
+  color: var(--ui-text-primary);
+}
+.researcher-roster-card .person-details small,
+.researcher-roster-card .researcher-roster-lines { color: var(--ui-text-secondary); }
+
+.program-summary span {
+  background: var(--ui-interactive-softest);
+  color: var(--ui-link);
+  border: 1px solid color-mix(in srgb,var(--ui-interactive) 30%,var(--ui-border-subtle));
+}
+.program-status-active {
+  color: var(--ui-success);
+  background: var(--ui-success-soft);
+}
+.program-status-inactive {
+  color: var(--ui-danger);
+  background: var(--ui-danger-soft);
+}
+
+/* FASE 5.2 · Ajustes del editor 2D en tema oscuro/claro */
+.editor-layout .graph-help,
+.editor-layout .batch-connect-feedback,
+.editor-layout .inspector-tip,
+.editor-layout .node-qa-editor-note {
+  background: var(--ui-layer-02);
+  border: 1px solid var(--ui-border-subtle);
+  color: var(--ui-text-secondary);
+}
+.editor-layout .inspector-heading,
+.editor-layout .inspector-bottom,
+.editor-layout .node-qa-card,
+.editor-layout .academic-reference-saved,
+.editor-layout .academic-reference-form,
+.editor-layout .concept-history-launch,
+.editor-layout .batch-connect-panel,
+.editor-layout .diagram-history-compare,
+.editor-layout .diagram-history-diff,
+.editor-layout .diagram-compare-summary,
+.editor-layout .diagram-history-note,
+.editor-layout .diagram-timeline-card,
+.editor-layout .diagram-history-empty {
+  border-color: var(--ui-border-subtle);
+}
+.editor-layout .inspector-fields label,
+.editor-layout .academic-reference-header,
+.editor-layout .concept-number-caption,
+.editor-layout .node-qa-heading,
+.editor-layout .diagram-timeline-kind,
+.editor-layout .diagram-timeline-owner,
+.editor-layout .diagram-timeline-footer,
+.editor-layout .diagram-history-note,
+.editor-layout .diagram-compare-summary,
+.editor-layout .batch-connect-intro p,
+.editor-layout .batch-connect-actions span,
+.editor-layout .graph-toolbar,
+.editor-layout .graph-help,
+.editor-layout .graph-loading {
+  color: var(--ui-text-secondary);
+}
+.editor-layout .node-qa-heading b,
+.editor-layout .academic-reference-saved-work,
+.editor-layout .diagram-timeline-title,
+.editor-layout .batch-connect-intro strong,
+.editor-layout .diagram-history-metrics strong,
+.editor-layout .inspector-heading h2 {
+  color: var(--ui-text-primary);
+}
+.editor-layout .concept {
+  background: var(--ui-layer-01);
+  border-color: var(--ui-border-strong);
+  box-shadow: var(--ui-shadow);
+}
+.editor-layout .concept strong { color: var(--ui-text-primary); }
+.editor-layout .concept p,
+.editor-layout .concept-kind,
+.editor-layout .concept-reference-count,
+.editor-layout .concept-title-word-caption,
+.editor-layout .academic-reference-saved-author,
+.editor-layout .academic-reference-saved-meta,
+.editor-layout .diagram-history-metrics span,
+.editor-layout .diagram-timeline-summary,
+.editor-layout .diagram-timeline-events li,
+.editor-layout .node-qa-card-head b,
+.editor-layout .graph-loading {
+  color: var(--ui-text-secondary);
+}
+.editor-layout .concept-title-word-caption--invalid,
+.editor-layout .academic-reference-unsaved-badge,
+.editor-layout .diagram-timeline-tag--removed,
+.editor-layout .diagram-timeline-tag--changed {
+  color: var(--ui-danger);
+}
+.editor-layout .react-flow__edge-text { fill: var(--ui-text-secondary); }
+.editor-layout .react-flow__controls {
+  background: transparent;
+  border-color: var(--ui-border-subtle);
+  box-shadow: var(--ui-shadow);
+}
+.editor-layout .react-flow__controls-button {
+  background: var(--ui-layer-01);
+  border-color: var(--ui-border-subtle);
+  color: var(--ui-text-primary);
+  fill: currentColor;
+}
+.editor-layout .react-flow__controls-button:hover {
+  background: var(--ui-layer-02);
+}
+.editor-layout .react-flow__minimap {
+  background: color-mix(in srgb, var(--ui-layer-01) 92%, transparent);
+  border: 1px solid var(--ui-border-subtle);
+  box-shadow: var(--ui-shadow);
+}
+.editor-layout .react-flow__minimap svg {
+  background: transparent;
+}
+.editor-layout .react-flow__minimap-mask {
+  fill: color-mix(in srgb, var(--ui-layer-02) 82%, transparent);
+}
+html[data-theme='dark'] .editor-layout .react-flow__minimap-mask {
+  fill: rgba(255,255,255,.08);
+}
+.editor-layout .react-flow__background path,
+.editor-layout .react-flow__background circle {
+  stroke: var(--ui-grid-dot);
+}
+html[data-theme='dark'] .editor-layout .concept {
+  box-shadow: none;
+}
+html[data-theme='dark'] .editor-layout .concept--selected {
+  box-shadow: 0 0 0 2px rgba(120,169,255,.35), 0 0 0 1px rgba(120,169,255,.2);
+}
+html[data-theme='dark'] .editor-layout .concept-handle {
+  background: #a6c8ff !important;
+  border-color: #161616 !important;
+}
+
+/* ==========================================================
+   FASE 5.3 · ESTADOS SEMÁNTICOS DEL EDITOR 2D
+   Cierra las últimas superficies claras heredadas en oscuro.
+   ========================================================== */
+
+/* Nodo crítico: conserva el amarillo como semántica sin convertirse en una isla clara. */
+.editor-layout .critical-toggle {
+  background: var(--ui-warning-soft);
+  border-color: color-mix(in srgb,var(--ui-warning) 65%,var(--ui-border-subtle));
+  color: var(--ui-text-primary);
+}
+.editor-layout .critical-toggle input { accent-color: #b28600; }
+.editor-layout .critical-toggle b { color: color-mix(in srgb,var(--ui-warning) 78%,var(--ui-text-primary)); }
+.editor-layout .critical-toggle small { color: var(--ui-text-secondary); }
+
+html[data-theme='dark'] .editor-layout .critical-toggle {
+  background: #3a3217;
+  border-color: #8a7414;
+}
+html[data-theme='dark'] .editor-layout .critical-toggle b { color: #fff4c2; }
+html[data-theme='dark'] .editor-layout .critical-toggle small { color: #d8ca8d; }
+html[data-theme='dark'] .editor-layout .critical-toggle input { accent-color: #f1c21b; }
+
+/* Estados semánticos compartidos del editor. */
+.editor-layout .batch-connect-feedback,
+.editor-layout .program-status-active,
+.editor-layout .academic-reference-saved-badge {
+  background: var(--ui-success-soft);
+  color: var(--ui-success);
+  border-color: color-mix(in srgb,var(--ui-success) 50%,var(--ui-border-subtle));
+}
+.editor-layout .academic-reference-unsaved-badge,
+.editor-layout .diagram-save-dot:not(.diagram-save-dot--ok) {
+  background: var(--ui-warning-soft);
+  color: color-mix(in srgb,var(--ui-warning) 70%,var(--ui-text-primary));
+}
+.editor-layout .node-qa-remove,
+.editor-layout .delete-diagram,
+.editor-layout .program-status-inactive {
+  color: var(--ui-danger);
+}
+.editor-layout .academic-reference-saved-actions,
+.editor-layout .academic-reference-saved-actions button,
+.editor-layout .academic-reference-edit-actions button,
+.editor-layout .node-qa-card-actions button {
+  border-color: var(--ui-border-subtle);
+}
+.editor-layout .academic-reference-saved-actions button,
+.editor-layout .academic-reference-edit-actions button,
+.editor-layout .node-qa-card-actions button {
+  background: var(--ui-layer-01);
+  color: var(--ui-link);
+}
+.editor-layout .academic-reference-saved-actions button:hover,
+.editor-layout .academic-reference-edit-actions button:hover,
+.editor-layout .node-qa-card-actions button:hover {
+  background: var(--ui-layer-02);
+}
+
+/* Guía: evita que una capa de lectura vuelva a aparecer en blanco dentro del editor oscuro. */
+.editor-layout .guide-overlay {
+  background: color-mix(in srgb,var(--ui-layer-01) 96%,transparent);
+  border-color: var(--ui-border-subtle);
+  color: var(--ui-text-primary);
+  box-shadow: var(--ui-shadow-raised);
+}
+.editor-layout .guide-overlay p,
+.editor-layout .guide-overlay small { color: var(--ui-text-secondary); }
+.editor-layout .guide-overlay button:not(.guide-close) {
+  background: var(--ui-interactive);
+  color: #fff;
+}
+.editor-layout .guide-close { color: var(--ui-text-secondary); }
+
+
+/* ==========================================================
+   FASE 5.5 · RUTA DE LECTURA OSCURA CON CONTEXTO LEGIBLE
+   El foco no debe apagar el sistema: jerarquiza sin ocultar.
+   ========================================================== */
+html[data-theme='dark'] .p2d-presentation--focused .p2d-map {
+  background:
+    radial-gradient(circle at 1px 1px, rgba(120,169,255,.19) 1px, transparent 0) 0 0 / 24px 24px,
+    #202020;
+}
+
+/* El contexto permanece presente; 20% era demasiado tenue en oscuro. */
+html[data-theme='dark'] .p2d-presentation--focused .p2d-node--dimmed {
+  opacity: .46;
+}
+html[data-theme='dark'] .p2d-presentation--focused .p2d-node--critical.p2d-node--dimmed {
+  opacity: .58;
+}
+
+/* Nodo actual: una capa por encima del lienzo, sin convertirlo en una tarjeta blanca. */
+html[data-theme='dark'] .p2d-presentation--focused .p2d-node--selected:not(.p2d-node--critical) {
+  background: #333333;
+  border-color: #78a9ff;
+  border-left-color: #0f62fe;
+  box-shadow:
+    0 0 0 2px rgba(120,169,255,.28),
+    0 10px 28px rgba(0,0,0,.28);
+}
+
+/* Vecinos inmediatos: azul medio, visible pero subordinado al seleccionado. */
+html[data-theme='dark'] .p2d-presentation--focused .p2d-node--nearby:not(.p2d-node--selected):not(.p2d-node--critical) {
+  background: #243b5a;
+  border-color: #5f8fd8;
+  border-left-color: #78a9ff;
+  box-shadow: 0 0 0 1px rgba(120,169,255,.18);
+}
+html[data-theme='dark'] .p2d-presentation--focused .p2d-node--nearby:not(.p2d-node--selected) strong {
+  color: #f4f4f4;
+}
+html[data-theme='dark'] .p2d-presentation--focused .p2d-node--nearby:not(.p2d-node--selected) .p2d-node-meta,
+html[data-theme='dark'] .p2d-presentation--focused .p2d-node--nearby:not(.p2d-node--selected) .p2d-node-kicker {
+  color: #c6c6c6;
+}
+
+/* El inspector sigue oscuro, pero con una separación tonal más clara del mapa. */
+html[data-theme='dark'] .p2d-presentation--focused .p2d-inspector,
+html[data-theme='dark'] .p2d-presentation--focused .p2d-inspector-scroll {
+  background: #393939;
+}
+html[data-theme='dark'] .p2d-presentation--focused .p2d-inspector-head {
+  background: #333333;
+}
+html[data-theme='dark'] .p2d-presentation--focused .p2d-reading-section {
+  border-bottom-color: #5a5a5a;
+}
+
+/* Ayuda contextual visible sin convertirse en una mancha clara. */
+html[data-theme='dark'] .p2d-presentation--focused .p2d-map-hint {
+  background: rgba(51,51,51,.96);
+  border-color: #6f6f6f;
+  color: #f4f4f4;
+  box-shadow: 0 5px 18px rgba(0,0,0,.24);
+}
+html[data-theme='dark'] .p2d-presentation--focused .p2d-map-hint small {
+  color: #c6c6c6;
+  border-left-color: #6f6f6f;
+}
+
+/* ==========================================================
+   FASE 5.6 · RUTA OSCURA · CONTRASTE REAL DE LECTURA
+   Corrige colores heredados claros en QA y eleva superficies
+   del modo de foco para evitar una experiencia casi negra.
+   ========================================================== */
+html[data-theme='dark'] .p2d-presentation--focused .p2d-map {
+  background:
+    radial-gradient(circle at 1px 1px, rgba(120,169,255,.24) 1px, transparent 0) 0 0 / 24px 24px,
+    #292929;
+}
+
+html[data-theme='dark'] .p2d-presentation--focused .p2d-node--dimmed {
+  opacity: .62;
+}
+html[data-theme='dark'] .p2d-presentation--focused .p2d-node--critical.p2d-node--dimmed {
+  opacity: .72;
+}
+
+html[data-theme='dark'] .p2d-presentation--focused .p2d-node--selected:not(.p2d-node--critical) {
+  background: #424242;
+  border-color: #78a9ff;
+  border-left-color: #0f62fe;
+  color: #ffffff;
+  box-shadow:
+    0 0 0 2px rgba(120,169,255,.34),
+    0 10px 28px rgba(0,0,0,.24);
+}
+html[data-theme='dark'] .p2d-presentation--focused .p2d-node--selected strong {
+  color: #ffffff;
+}
+html[data-theme='dark'] .p2d-presentation--focused .p2d-node--selected .p2d-node-meta,
+html[data-theme='dark'] .p2d-presentation--focused .p2d-node--selected .p2d-node-kicker {
+  color: #dcdcdc;
+}
+
+html[data-theme='dark'] .p2d-presentation--focused .p2d-node--nearby:not(.p2d-node--selected):not(.p2d-node--critical) {
+  background: #31537d;
+  border-color: #78a9ff;
+  border-left-color: #a6c8ff;
+}
+
+html[data-theme='dark'] .p2d-presentation--focused .p2d-inspector,
+html[data-theme='dark'] .p2d-presentation--focused .p2d-inspector-scroll {
+  background: #464646;
+}
+html[data-theme='dark'] .p2d-presentation--focused .p2d-inspector-head {
+  background: #3f3f3f;
+  border-bottom-color: #6f6f6f;
+}
+html[data-theme='dark'] .p2d-presentation--focused .p2d-inspector-head>small,
+html[data-theme='dark'] .p2d-presentation--focused .p2d-description {
+  color: #d6d6d6;
+}
+html[data-theme='dark'] .p2d-presentation--focused .p2d-section-title,
+html[data-theme='dark'] .p2d-presentation--focused .node-qa-reading > .eyebrow {
+  color: #e0b786;
+}
+
+/* Preguntas y respuestas: app.css conservaba texto vino oscuro de la versión clara. */
+html[data-theme='dark'] .p2d-presentation--focused .node-qa-reading {
+  border-top-color: #6f6f6f;
+}
+html[data-theme='dark'] .p2d-presentation--focused .node-qa-reading-item {
+  background: #303030;
+  border-color: #6f6f6f;
+  color: #f4f4f4;
+}
+html[data-theme='dark'] .p2d-presentation--focused .node-qa-reading-item summary {
+  color: #f4f4f4;
+  background: #303030;
+}
+html[data-theme='dark'] .p2d-presentation--focused .node-qa-reading-item summary span {
+  color: #001141;
+  background: #a6c8ff;
+}
+html[data-theme='dark'] .p2d-presentation--focused .node-qa-reading-item[open] summary {
+  background: #393939;
+  border-bottom-color: #6f6f6f;
+}
+html[data-theme='dark'] .p2d-presentation--focused .node-qa-reading-item p {
+  color: #e0e0e0;
+  background: #353535;
+}
+html[data-theme='dark'] .p2d-presentation--focused .node-qa-reading-item:hover,
+html[data-theme='dark'] .p2d-presentation--focused .node-qa-reading-item:focus-within {
+  border-color: #78a9ff;
+}
+
+/* Conexiones y fuentes deben tener la misma claridad que QA. */
+html[data-theme='dark'] .p2d-presentation--focused .p2d-connection-list button,
+html[data-theme='dark'] .p2d-presentation--focused .p2d-reference-list article,
+html[data-theme='dark'] .p2d-presentation--focused .p2d-panel-block,
+html[data-theme='dark'] .p2d-presentation--focused .p2d-connection-card,
+html[data-theme='dark'] .p2d-presentation--focused .p2d-source-card {
+  background: #303030;
+  border-color: #6f6f6f;
+  color: #f4f4f4;
+}
+html[data-theme='dark'] .p2d-presentation--focused .p2d-connection-list span,
+html[data-theme='dark'] .p2d-presentation--focused .p2d-reference-list span,
+html[data-theme='dark'] .p2d-presentation--focused .p2d-reference-list small {
+  color: #d6d6d6;
+}
+html[data-theme='dark'] .p2d-presentation--focused .p2d-connection-list b,
+html[data-theme='dark'] .p2d-presentation--focused .p2d-reference-list a {
+  color: #a6c8ff;
+}
+
+html[data-theme='dark'] .p2d-presentation--focused .p2d-reading-section {
+  border-bottom-color: #6f6f6f;
+}
+html[data-theme='dark'] .p2d-presentation--focused .p2d-stepper {
+  background: #363636;
+  border-top-color: #6f6f6f;
+}
+html[data-theme='dark'] .p2d-presentation--focused .p2d-stepper button:not(:last-child) {
+  background: #464646;
+  border-color: #8d8d8d;
+  color: #f4f4f4;
+}
+
+/* FASE 5.7 · Fuentes y referencias legibles en ruta oscura */
+html[data-theme='dark'] .p2d-presentation--focused .p2d-reference-list article {
+  background: #303030;
+  border-color: #6f6f6f;
+  color: #f4f4f4;
+}
+html[data-theme='dark'] .p2d-presentation--focused .p2d-reference-list article > svg {
+  color: #f4f4f4;
+  stroke: currentColor;
+}
+html[data-theme='dark'] .p2d-presentation--focused .p2d-reference-list strong {
+  color: #f4f4f4;
+}
+html[data-theme='dark'] .p2d-presentation--focused .p2d-reference-list span,
+html[data-theme='dark'] .p2d-presentation--focused .p2d-reference-list small {
+  color: #d6d6d6;
+}
+html[data-theme='dark'] .p2d-presentation--focused .p2d-reference-list a {
+  color: #a6c8ff;
+}
+html[data-theme='dark'] .p2d-presentation--focused .p2d-reference-list article:hover,
+html[data-theme='dark'] .p2d-presentation--focused .p2d-reference-list article:focus-within {
+  background: #353535;
+  border-color: #78a9ff;
+}
+
+/* ==========================================================
+   FASE 5.8 · GRUPOS DE INVITADOS · SUPERFICIES TEMATIZADAS
+   Elimina islas claras heredadas dentro del panel administrativo.
+   ========================================================== */
+.guest-admin-panel {
+  background: var(--ui-layer-01);
+  border-color: var(--ui-border-subtle);
+  color: var(--ui-text-primary);
+}
+.guest-admin-panel .program-catalog-heading p {
+  color: var(--ui-text-secondary);
+}
+.guest-program-choice {
+  background: var(--ui-layer-01);
+  border-color: var(--ui-border-subtle);
+  color: var(--ui-text-primary);
+}
+.guest-program-choice:hover {
+  background: var(--ui-layer-02);
+  border-color: var(--ui-interactive);
+}
+.guest-program-choice--selected {
+  background: var(--ui-interactive-softest);
+  border-color: var(--ui-interactive);
+  box-shadow: 0 0 0 1px color-mix(in srgb,var(--ui-interactive) 34%,transparent);
+}
+.guest-program-choice small {
+  color: var(--ui-text-secondary);
+}
+.guest-state {
+  color: var(--ui-text-helper);
+}
+.guest-state--open {
+  color: var(--ui-success);
+}
+.guest-admin-editor {
+  border-color: var(--ui-border-subtle);
+}
+.guest-admin-placeholder {
+  background: var(--ui-layer-02);
+  border-color: var(--ui-border-strong);
+  color: var(--ui-text-secondary);
+}
+.guest-config-heading h3 {
+  color: var(--ui-text-primary);
+}
+.guest-slug-input {
+  background: var(--ui-layer-01);
+  border-color: var(--ui-border-strong);
+}
+.guest-slug-input span {
+  background: var(--ui-layer-02);
+  color: var(--ui-text-secondary);
+  border-right-color: var(--ui-border-subtle);
+}
+.governance-form .guest-slug-input input {
+  background: var(--ui-layer-01);
+  color: var(--ui-text-primary);
+}
+.guest-option {
+  background: var(--ui-layer-01);
+  border-color: var(--ui-border-subtle);
+  color: var(--ui-text-primary);
+}
+.guest-option:hover {
+  background: var(--ui-layer-02);
+  border-color: var(--ui-border-strong);
+}
+.guest-option small {
+  color: var(--ui-text-secondary);
+}
+.guest-option input {
+  accent-color: var(--ui-interactive);
+}
+.guest-public-link {
+  background: var(--ui-layer-02);
+  border-color: var(--ui-border-strong);
+  color: var(--ui-text-primary);
+}
+.guest-public-link small {
+  color: var(--ui-text-helper);
+}
+.guest-public-link a {
+  color: var(--ui-link);
+}
+.guest-public-link .button-secondary {
+  background: var(--ui-layer-01);
+  border-color: var(--ui-border-strong);
+  color: var(--ui-text-primary);
+}
+.guest-public-link .button-secondary:hover {
+  background: var(--ui-background-hover);
+  border-color: var(--ui-interactive);
+  color: var(--ui-link);
+}
+.program-status-active {
+  background: var(--ui-success-soft);
+  color: var(--ui-success);
+}
+.program-status-inactive {
+  background: var(--ui-danger-soft);
+  color: var(--ui-danger);
+}
+.guest-card-actions {
+  background: var(--ui-layer-01);
+  border-top-color: var(--ui-border-subtle);
+}
+.guest-card-action:hover {
+  background: var(--ui-layer-02);
+}
+
+html[data-theme='dark'] .guest-admin-panel .guest-public-link {
+  background: #333333;
+  border-color: #6f6f6f;
+}
+html[data-theme='dark'] .guest-admin-panel .guest-public-link small {
+  color: #c6c6c6;
+}
+html[data-theme='dark'] .guest-admin-panel .guest-public-link a {
+  color: #a6c8ff;
+}
+html[data-theme='dark'] .guest-admin-panel .guest-slug-input span {
+  background: #333333;
+  color: #c6c6c6;
+}
+
+/* ==========================================================
+   FASE 5.9 · BIBLIOTECA · VISIBILIDAD Y ENLACES PÚBLICOS
+   ========================================================== */
+.library-public-access {
+  margin: 18px 0 34px;
+  padding: 20px 22px;
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: 12px;
+  background: var(--ui-layer-01);
+  color: var(--ui-text-primary);
+}
+.library-public-access__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+.library-public-access__heading h2 {
+  margin: 7px 0 5px;
+  font-size: 18px;
+  letter-spacing: -.025em;
+}
+.library-public-access__heading p {
+  margin: 0;
+  color: var(--ui-text-secondary);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.library-public-count,
+.publication-access-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: 999px;
+  background: var(--ui-layer-02);
+  color: var(--ui-text-secondary);
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.library-public-count { padding: 7px 10px; }
+.library-public-count--active,
+.publication-access-badge--public {
+  background: var(--ui-success-soft);
+  border-color: color-mix(in srgb,var(--ui-success) 46%,var(--ui-border-subtle));
+  color: var(--ui-success);
+}
+.library-public-group-list {
+  display: grid;
+  gap: 9px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--ui-border-subtle);
+}
+.library-public-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 13px;
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: 9px;
+  background: var(--ui-layer-02);
+}
+.library-public-group > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: var(--ui-success);
+}
+.library-public-group > div:first-child span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 3px;
+}
+.library-public-group b {
+  color: var(--ui-text-primary);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.library-public-group small {
+  color: var(--ui-text-helper);
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+.library-public-actions,
+.publication-share-actions__buttons {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.library-public-actions .button,
+.publication-share-actions__buttons .button {
+  min-height: 34px;
+  padding: 8px 10px;
+  font-size: 10px;
+}
+.publication-library-card {
+  display: flex;
+  flex-direction: column;
+}
+.publication-library-card .diagram-card-link {
+  flex: 1;
+}
+.publication-library-meta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.publication-library-meta .eyebrow {
+  min-width: 0;
+  margin: 0;
+}
+.publication-access-badge {
+  padding: 4px 7px;
+  flex: none;
+  font-size: 9px;
+}
+.publication-share-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 16px;
+  border-top: 1px solid var(--ui-border-subtle);
+  background: var(--ui-success-soft);
+}
+.publication-share-actions > div:first-child {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  color: var(--ui-success);
+}
+.publication-share-actions > div:first-child span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.publication-share-actions b {
+  color: var(--ui-text-primary);
+  font-size: 10px;
+}
+.publication-share-actions small {
+  color: var(--ui-text-secondary);
+  font-size: 9px;
+}
+.publication-share-actions + .diagram-publish {
+  border-top-color: color-mix(in srgb,var(--ui-border-subtle) 75%,var(--ui-success));
+}
+html[data-theme='dark'] .library-public-access,
+html[data-theme='dark'] .library-public-group {
+  box-shadow: none;
+}
+html[data-theme='dark'] .publication-share-actions {
+  background: color-mix(in srgb,var(--ui-success-soft) 72%,var(--ui-layer-01));
+}
+
+@media (max-width: 700px) {
+  .library-public-access__heading,
+  .library-public-group,
+  .publication-share-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .library-public-actions,
+  .publication-share-actions__buttons {
+    width: 100%;
+  }
+  .library-public-actions .button,
+  .publication-share-actions__buttons .button {
+    flex: 1;
+  }
+  .publication-library-meta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

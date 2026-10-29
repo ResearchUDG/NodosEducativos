@@ -155,6 +155,60 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time
         && validPublicationEdition();
     }
+    // Fase 4A: acceso invitado. Nunca abre groupPublications ni datos privados.
+    function internalGroupActive(groupId) {
+      return exists(/databases/$(database)/documents/groups/$(groupId))
+        && get(/databases/$(database)/documents/groups/$(groupId)).data.active == true;
+    }
+    function publicGuestGroupEnabled(groupId) {
+      return internalGroupActive(groupId)
+        && exists(/databases/$(database)/documents/guestGroups/$(groupId))
+        && get(/databases/$(database)/documents/guestGroups/$(groupId)).data.active == true;
+    }
+    function validGuestSlugValue(slug) {
+      return slug is string
+        && slug.size() >= 3 && slug.size() <= 60
+        && slug.matches('^[a-z0-9]+(?:-[a-z0-9]+)*$');
+    }
+    function validGuestGroupConfig(groupId) {
+      return request.resource.data.keys().hasOnly(['groupId','slug','title','description','guideEnabled','active','updatedAt'])
+        && request.resource.data.keys().hasAll(['groupId','slug','title','description','guideEnabled','active','updatedAt'])
+        && request.resource.data.groupId == groupId
+        && validGuestSlugValue(request.resource.data.slug)
+        && request.resource.data.title is string
+        && request.resource.data.title.size() >= 3 && request.resource.data.title.size() <= 100
+        && request.resource.data.description is string && request.resource.data.description.size() <= 400
+        && request.resource.data.guideEnabled is bool
+        && request.resource.data.active is bool
+        && exists(/databases/$(database)/documents/groups/$(groupId))
+        && (request.resource.data.active == false || get(/databases/$(database)/documents/groups/$(groupId)).data.active == true)
+        && request.resource.data.updatedAt == request.time;
+    }
+    function validGuestSlugMap(slug) {
+      let config = /databases/$(database)/documents/guestGroups/$(request.resource.data.groupId);
+      return request.resource.data.keys().hasOnly(['groupId','slug','active','updatedAt'])
+        && request.resource.data.keys().hasAll(['groupId','slug','active','updatedAt'])
+        && request.resource.data.groupId is string
+        && request.resource.data.slug == slug
+        && validGuestSlugValue(request.resource.data.slug)
+        && request.resource.data.active == true
+        && request.resource.data.updatedAt == request.time
+        && existsAfter(config)
+        && getAfter(config).data.active == true
+        && getAfter(config).data.slug == slug;
+    }
+    function validGuestPublicationMirror(groupId, diagramId) {
+      let source = /databases/$(database)/documents/groupPublications/$(groupId)/diagrams/$(diagramId);
+      return request.resource.data.keys().hasOnly(['title','description','nodes','edges','publishedAt','updatedAt'])
+        && request.resource.data.keys().hasAll(['title','description','nodes','edges','publishedAt','updatedAt'])
+        && existsAfter(source)
+        && request.resource.data.title == getAfter(source).data.title
+        && request.resource.data.description == getAfter(source).data.description
+        && request.resource.data.nodes == getAfter(source).data.nodes
+        && request.resource.data.edges == getAfter(source).data.edges
+        && request.resource.data.publishedAt == getAfter(source).data.publishedAt
+        && request.resource.data.updatedAt == getAfter(source).data.updatedAt;
+    }
     // Trayectoria privada: eventos manuales sin acreditación oficial ni permisos.
     function validTrajectoryMilestoneDate(value) {
       return value is string
@@ -323,6 +377,29 @@ service cloud.firestore {
           allow delete: if institutionalUser() && approved() && request.auth.uid == uid
             && !exists(/databases/$(database)/documents/users/$(uid)/diagrams/$(diagramId));
         }
+      }
+    }
+    // Índice público por slug. No admite listados anónimos: se requiere conocer el enlace.
+    match /guestGroupSlugs/{slug} {
+      allow get: if admin() || (resource.data.active == true
+        && resource.data.slug == slug
+        && publicGuestGroupEnabled(resource.data.groupId));
+      allow list: if false;
+      allow create, update: if admin() && validGuestSlugMap(slug);
+      allow delete: if admin();
+    }
+    // Metadatos públicos mínimos del grupo. No contiene miembros ni createdBy.
+    match /guestGroups/{groupId} {
+      allow get: if admin() || canPublish(groupId)
+        || (resource.data.active == true && internalGroupActive(groupId));
+      allow list: if admin();
+      allow create, update: if admin() && validGuestGroupConfig(groupId);
+      allow delete: if false;
+      match /publications/{diagramId} {
+        allow get, list: if publicGuestGroupEnabled(groupId);
+        allow create, update: if canPublish(groupId) && publicGuestGroupEnabled(groupId)
+          && validGuestPublicationMirror(groupId, diagramId);
+        allow delete: if admin() || canPublish(groupId);
       }
     }
     // PUBLICACIONES: copias explícitas del esquema, nunca borradores del profesor.

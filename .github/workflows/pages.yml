@@ -1,20 +1,19 @@
-name: Publicar Nodos Educativos en GitHub Pages
+name: Publicar GitHub Pages
 on:
+  workflow_dispatch:
   push:
     branches: [main]
-  workflow_dispatch:
 permissions:
   contents: read
   pages: write
   id-token: write
 concurrency:
-  group: nodos-pages
+  group: github-pages
   cancel-in-progress: true
 jobs:
   deploy:
-    if: vars.LAUNCH_APPROVED == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    if: vars.LAUNCH_APPROVED == 'true'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -25,31 +24,23 @@ jobs:
       VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
       VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.VITE_FIREBASE_MESSAGING_SENDER_ID }}
     steps:
-      - name: Descargar código
-        uses: actions/checkout@v4
-      - name: Usar Node 22
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-      - name: Verificar configuración de la aplicación
+      - name: Verificar aprobación y configuración Firebase
         shell: bash
         run: |
           test -n "$VITE_FIREBASE_API_KEY"
           test -n "$VITE_FIREBASE_AUTH_DOMAIN"
-          test "$VITE_FIREBASE_PROJECT_ID" = 'nodos-educativos-researchudg'
+          test -n "$VITE_FIREBASE_PROJECT_ID"
           test -n "$VITE_FIREBASE_APP_ID"
           test -n "$VITE_FIREBASE_MESSAGING_SENDER_ID"
-      - name: Instalar dependencias verificadas
-        run: npm ci --no-audit --no-fund
-      - name: Ejecutar pruebas y compilar
-        run: npm run check
-      - name: Preparar GitHub Pages
-        uses: actions/configure-pages@v5
-      - name: Enviar sitio
-        uses: actions/upload-pages-artifact@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-fund
+      - run: npm run check
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
-      - name: Publicar
-        id: deployment
+      - id: deployment
         uses: actions/deploy-pages@v4

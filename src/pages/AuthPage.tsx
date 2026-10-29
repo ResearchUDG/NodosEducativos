@@ -6,6 +6,7 @@ import { auth } from '../lib/firebase';
 import { explainError } from '../lib/errors';
 import { isInstitutionalEmail, normalizeEmail } from '../lib/policy';
 import { validateGoogleIdentity } from '../lib/googleAccess';
+import { ThemeSwitch } from '../components/ThemeSwitch';
 
 type Mode = 'signin' | 'signup' | 'reset';
 const GOOGLE_REJECTION_KEY = 'nodos-google-rejection-v1';
@@ -94,6 +95,7 @@ export function AuthPage() {
         <small className="auth-story-footer">RESEARCHUDG / NODOS EDUCATIVOS · 2026</small>
       </div>
       <div className="auth-panel"><div className="auth-content">
+        <div className="auth-theme-switch"><ThemeSwitch compact/></div>
         <div className="auth-mark"><GraduationCap size={23}/></div>
         <div className="eyebrow">ACCESO A LA PLATAFORMA</div>
         <h2>{mode === 'signin' ? 'Bienvenido de nuevo.' : mode === 'signup' ? 'Crear una cuenta.' : 'Recuperar acceso.'}</h2>
@@ -148,5 +150,5 @@ export function VerifyEmailPage() {
     catch (err) { setMessage(explainError(err)); }
     finally { setBusy(false); }
   }
-  return <div className="verification-screen"><div className="verify-card"><span className="verify-icon"><Mail size={34}/></span><div className="eyebrow">VERIFICACIÓN OBLIGATORIA</div><h1>Confirme su dirección institucional</h1><p>Para proteger los espacios de investigación, primero necesitamos confirmar que tiene acceso a la cuenta de correo indicada.</p><b>{auth?.currentUser?.email}</b>{message && <p role="status" className="alert">{message}</p>}<button className="button button-primary" disabled={busy} onClick={check}>Ya verifiqué mi correo <ArrowRight size={17}/></button><button className="button button-secondary" disabled={busy} onClick={resend}>Volver a enviar enlace</button><button className="link-button" onClick={async () => { if (auth) await signOut(auth); }}>Usar otra cuenta</button></div></div>;
+  return <div className="verification-screen"><div className="verify-card"><div className="verification-theme-switch"><ThemeSwitch compact/></div><span className="verify-icon"><Mail size={34}/></span><div className="eyebrow">VERIFICACIÓN OBLIGATORIA</div><h1>Confirme su dirección institucional</h1><p>Para proteger los espacios de investigación, primero necesitamos confirmar que tiene acceso a la cuenta de correo indicada.</p><b>{auth?.currentUser?.email}</b>{message && <p role="status" className="alert">{message}</p>}<button className="button button-primary" disabled={busy} onClick={check}>Ya verifiqué mi correo <ArrowRight size={17}/></button><button className="button button-secondary" disabled={busy} onClick={resend}>Volver a enviar enlace</button><button className="link-button" onClick={async () => { if (auth) await signOut(auth); }}>Usar otra cuenta</button></div></div>;
 }

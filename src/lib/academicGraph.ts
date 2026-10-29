@@ -1,5 +1,6 @@
 import type { AcademicReference, ArgumentRelation, ConceptEdge, ConceptNode } from './types';
 import { isValidNodeTitle, MAX_NODE_TITLE_CHARACTERS } from './nodeTitle';
+import { normalizeNodeQA, validateNodeQA } from './nodeQA';
 
 export const MAX_NODE_REFERENCES = 4;
 export const relationLabels: Record<ArgumentRelation, string> = {
@@ -45,6 +46,8 @@ export function validateAcademicGraph(nodes: ConceptNode[], edges: ConceptEdge[]
       if (!ref.work.trim()) return `Complete la obra en una referencia del nodo «${node.data.title}» o elimínela.`;
       if (ref.url?.trim() && !safeReferenceUrl(ref.url)) return `La referencia de «${node.data.title}» necesita una URL http(s) válida.`;
     }
+    const qaProblem = validateNodeQA(node.data.qa);
+    if (qaProblem) return `${qaProblem} Nodo: «${node.data.title}».`;
   }
   if (edges.some(edge => !ids.has(edge.source) || !ids.has(edge.target))) return 'Hay conexiones que apuntan a nodos inexistentes.';
   return null;
@@ -62,6 +65,7 @@ export function serializeAcademicGraph(nodes: ConceptNode[], edges: ConceptEdge[
         title: text(node.data.title, MAX_NODE_TITLE_CHARACTERS), description: text(node.data.description, 240),
         category: (categories.has(node.data.category) ? node.data.category : 'idea') as ConceptNode['data']['category'],
         ...(node.data.references?.length ? { references: node.data.references.map(normalizeReference) } : {}),
+        ...(normalizeNodeQA(node.data.qa).length ? { qa: normalizeNodeQA(node.data.qa) } : {}),
         ...(node.data.critical === true ? { critical: true } : {}),
       },
     })),

@@ -8,12 +8,15 @@ export type AcademicReference = {
   locator: string;
   url: string;
 };
+export type NodeQAItem = { question: string; answer: string; };
 export type ArgumentRelation = 'fundamenta' | 'refuta' | 'define' | 'contextualiza' | 'cuestiona' | 'deriva' | 'ejemplifica' | 'otra';
 export type ConceptData = {
   title: string;
   description: string;
   category: 'tesis' | 'idea' | 'fuente' | 'pregunta';
   references?: AcademicReference[];
+  /** Preguntas y respuestas pedagógicas declaradas por el autor. */
+  qa?: NodeQAItem[];
   /** Marca académica explícita del autor, no una valoración automática. */
   critical?: boolean;
   /** Propiedad de presentación, nunca persistida. */

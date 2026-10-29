@@ -1,8 +1,9 @@
-import { collection, doc, getDoc, getDocs, serverTimestamp, setDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { db } from './firebase';
 import type { Diagram } from './types';
 import type { DiagramRevision } from './diagramHistory';
 import { preparePublicationEdition } from './versionedPublication';
+import { guestPublicationDocument } from './guestGroups';
 
 export type GroupInfo = { id: string; name: string; description: string; active: boolean };
 export type Publication = Diagram & { ownerUid: string; sourceDiagramId: string; groupId: string; sourceRevisionId?: string; sourceRevisionSavedAt?: unknown };
@@ -34,20 +35,29 @@ export async function publicationsInGroups(groups: GroupInfo[]): Promise<Publica
   return lists.flat();
 }
 export async function publishToGroup(uid: string, diagramId: string, revision: DiagramRevision, groupId: string, selectedNodeIds: string[]) {
-  // La edición nace exclusivamente de una revisión privada guardada.
-  // El profesor elige los nodos; el resto, incluidas sus fuentes, no se copia.
+  // La edición académica sigue siendo la fuente autorizada. Si el grupo tiene
+  // acceso invitado, se refleja una copia pública sin UID ni IDs privados.
   const edition = preparePublicationEdition(revision, selectedNodeIds);
   const instance = firestore();
   const ref = doc(instance, 'groupPublications', groupId, 'diagrams', diagramId);
   const previous = await getDoc(ref);
-  const document = {
-    ownerUid: uid, sourceDiagramId: diagramId, ...edition,
-    updatedAt: serverTimestamp(), ...(previous.exists() ? {} : { publishedAt: serverTimestamp() }),
-  };
-  await setDoc(ref, document, { merge: true });
+  const publishedAt = previous.exists() && previous.data().publishedAt ? previous.data().publishedAt : serverTimestamp();
+  const updatedAt = serverTimestamp();
+  const document = { ownerUid: uid, sourceDiagramId: diagramId, ...edition, publishedAt, updatedAt };
+  const guestConfig = await getDoc(doc(instance, 'guestGroups', groupId));
+  const guestRef = doc(instance, 'guestGroups', groupId, 'publications', diagramId);
+  const batch = writeBatch(instance);
+  batch.set(ref, document, { merge: true });
+  if (guestConfig.exists() && guestConfig.data().active === true) batch.set(guestRef, guestPublicationDocument(document));
+  else batch.delete(guestRef);
+  await batch.commit();
 }
 export async function retractPublication(groupId: string, diagramId: string) {
-  await deleteDoc(doc(firestore(), 'groupPublications', groupId, 'diagrams', diagramId));
+  const instance = firestore();
+  const batch = writeBatch(instance);
+  batch.delete(doc(instance, 'groupPublications', groupId, 'diagrams', diagramId));
+  batch.delete(doc(instance, 'guestGroups', groupId, 'publications', diagramId));
+  await batch.commit();
 }
 export async function openPublication(groupId: string, id: string): Promise<Publication> {
   const snap = await getDoc(doc(firestore(), 'groupPublications', groupId, 'diagrams', id));
