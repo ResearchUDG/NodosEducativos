@@ -1891,3 +1891,32 @@ body {
   }
 }
 /* === FASE 5.12 FULLSCREEN MOVIL LECTURA END === */
+
+/* === FASE 5.13 ESCALA MOVIL BEGIN === */
+/*
+ * iOS Safari aumenta automáticamente la escala visual al enfocar inputs
+ * con texto menor de 16px. En una SPA esa escala puede persistir al cambiar
+ * de ruta y hacer que toda la aplicación parezca "zoomed in".
+ *
+ * No desactivamos el zoom manual: preservamos accesibilidad.
+ */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+@media (max-width: 850px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+/* === FASE 5.13 ESCALA MOVIL END === */
+
+/* === FASE 5.14 ESCALA IOS BEGIN === */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+@media (max-width: 850px) {
+  input, textarea, select { font-size: 16px !important; }
+}
+/* === FASE 5.14 ESCALA IOS END === */

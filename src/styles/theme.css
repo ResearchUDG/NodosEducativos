@@ -1211,3 +1211,79 @@ html[data-theme='dark'] .publication-share-actions {
     flex-direction: column;
   }
 }
+
+/* === FASE 5.14 MOVIL FINAL BEGIN === */
+/* Escala iOS estable sin bloquear el zoom manual. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+@media (max-width: 850px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Lectura pública oscura: contraste reforzado en móvil. */
+@media (max-width: 850px) {
+  html[data-theme='dark'] .p2d-presentation--focused .p2d-inspector,
+  html[data-theme='dark'] .p2d-presentation--focused .p2d-inspector-scroll {
+    background: #4a4a4a !important;
+  }
+
+  html[data-theme='dark'] .p2d-presentation--focused .p2d-inspector-head {
+    background: #424242 !important;
+  }
+
+  html[data-theme='dark'] .p2d-presentation--focused .node-qa-reading-item {
+    background: #333333 !important;
+    border-color: #737373 !important;
+    color: #f4f4f4 !important;
+  }
+
+  html[data-theme='dark'] .p2d-presentation--focused .node-qa-reading-item summary,
+  html[data-theme='dark'] .p2d-presentation--focused .node-qa-reading-item summary * {
+    color: #f4f4f4 !important;
+  }
+
+  html[data-theme='dark'] .p2d-presentation--focused .node-qa-reading-item summary {
+    background: #333333 !important;
+  }
+
+  html[data-theme='dark'] .p2d-presentation--focused .node-qa-reading-item summary span {
+    background: #a6c8ff !important;
+    color: #001141 !important;
+  }
+
+  html[data-theme='dark'] .p2d-presentation--focused .node-qa-reading-item p {
+    background: #393939 !important;
+    color: #e8e8e8 !important;
+  }
+
+  html[data-theme='dark'] .p2d-presentation--focused .p2d-description {
+    color: #e0e0e0 !important;
+  }
+
+  html[data-theme='dark'] .p2d-presentation--focused .p2d-section-title,
+  html[data-theme='dark'] .p2d-presentation--focused .node-qa-reading > .eyebrow {
+    color: #f0c78f !important;
+  }
+
+  html[data-theme='dark'] .p2d-presentation--focused .p2d-connection-list button,
+  html[data-theme='dark'] .p2d-presentation--focused .p2d-reference-list article {
+    background: #333333 !important;
+    border-color: #737373 !important;
+    color: #f4f4f4 !important;
+  }
+
+  html[data-theme='dark'] .p2d-presentation--focused .p2d-connection-list span,
+  html[data-theme='dark'] .p2d-presentation--focused .p2d-reference-list span,
+  html[data-theme='dark'] .p2d-presentation--focused .p2d-reference-list small,
+  html[data-theme='dark'] .p2d-presentation--focused .p2d-reference-list strong {
+    color: #e0e0e0 !important;
+  }
+}
+/* === FASE 5.14 MOVIL FINAL END === */
