@@ -1356,3 +1356,54 @@ html[data-theme='dark'] .p2d-presentation .node-qa-reading-item[open] > p {
   color: #e8e8e8 !important;
 }
 /* === FASE 5.17 PREGUNTA ABIERTA OSCURA END === */
+
+/* === FASE 5.18 CONEXIONES Y RUTA OSCURO BEGIN === */
+/*
+ * Los estados interactivos de app.css (hover/focus) tenían mayor especificidad
+ * y devolvían superficies claras en Safari/iOS.
+ * Este bloque no depende de p2d-presentation--focused.
+ */
+html[data-theme='dark'] .p2d-presentation .p2d-connection-list button {
+  background: #303030 !important;
+  border-color: #6f6f6f !important;
+  color: #f4f4f4 !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html[data-theme='dark'] .p2d-presentation .p2d-connection-list button:hover,
+html[data-theme='dark'] .p2d-presentation .p2d-connection-list button:focus,
+html[data-theme='dark'] .p2d-presentation .p2d-connection-list button:focus-visible,
+html[data-theme='dark'] .p2d-presentation .p2d-connection-list button:active {
+  background: #393939 !important;
+  border-color: #78a9ff !important;
+  color: #f4f4f4 !important;
+}
+
+html[data-theme='dark'] .p2d-presentation .p2d-connection-list button span {
+  color: #e0e0e0 !important;
+  -webkit-text-fill-color: #e0e0e0 !important;
+}
+
+html[data-theme='dark'] .p2d-presentation .p2d-connection-list button b {
+  color: #a6c8ff !important;
+  -webkit-text-fill-color: #a6c8ff !important;
+}
+
+/* El botón Ver ruta heredaba #f7f1ee de app.css. */
+html[data-theme='dark'] .p2d-presentation .p2d-stepper .p2d-route-toggle {
+  background: #393939 !important;
+  border-color: #737373 !important;
+  color: #f4f4f4 !important;
+  -webkit-text-fill-color: #f4f4f4 !important;
+}
+
+html[data-theme='dark'] .p2d-presentation .p2d-stepper .p2d-route-toggle:hover,
+html[data-theme='dark'] .p2d-presentation .p2d-stepper .p2d-route-toggle:focus,
+html[data-theme='dark'] .p2d-presentation .p2d-stepper .p2d-route-toggle:focus-visible,
+html[data-theme='dark'] .p2d-presentation .p2d-stepper .p2d-route-toggle:active {
+  background: #464646 !important;
+  border-color: #78a9ff !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+/* === FASE 5.18 CONEXIONES Y RUTA OSCURO END === */
