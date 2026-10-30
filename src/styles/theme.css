@@ -1325,3 +1325,34 @@ html[data-theme='dark'] .p2d-presentation .node-qa-reading-item summary > .node-
   background: #a6c8ff !important;
 }
 /* === FASE 5.15 QA SAFARI CONTRASTE END === */
+
+/* === FASE 5.17 PREGUNTA ABIERTA OSCURA BEGIN === */
+/*
+ * El estado [open] no debe depender de p2d-presentation--focused.
+ * Safari/iOS estaba recuperando el fondo claro histórico del summary.
+ */
+html[data-theme='dark'] .p2d-presentation .node-qa-reading-item[open] > summary {
+  background: #333333 !important;
+  color: #f4f4f4 !important;
+  border-bottom-color: #737373 !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html[data-theme='dark'] .p2d-presentation .node-qa-reading-item[open] > summary > .node-qa-question-text {
+  background: transparent !important;
+  color: #f4f4f4 !important;
+  -webkit-text-fill-color: #f4f4f4 !important;
+  opacity: 1 !important;
+}
+
+html[data-theme='dark'] .p2d-presentation .node-qa-reading-item[open] > summary > .node-qa-number {
+  background: #a6c8ff !important;
+  color: #001141 !important;
+  -webkit-text-fill-color: #001141 !important;
+}
+
+html[data-theme='dark'] .p2d-presentation .node-qa-reading-item[open] > p {
+  background: #393939 !important;
+  color: #e8e8e8 !important;
+}
+/* === FASE 5.17 PREGUNTA ABIERTA OSCURA END === */
