@@ -1287,3 +1287,41 @@ html {
   }
 }
 /* === FASE 5.14 MOVIL FINAL END === */
+
+/* === FASE 5.15 QA SAFARI CONTRASTE BEGIN === */
+/*
+ * Safari/iOS puede conservar el color histórico del text node dentro de <summary>.
+ * La pregunta ahora tiene un elemento propio y color/text-fill explícitos.
+ */
+.node-qa-reading-item summary > .node-qa-number {
+  flex: none;
+}
+
+.node-qa-reading-item summary > .node-qa-question-text {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: inherit;
+  line-height: inherit;
+  letter-spacing: normal;
+  color: var(--ui-text-primary);
+  -webkit-text-fill-color: currentColor;
+  opacity: 1;
+}
+
+html[data-theme='dark'] .p2d-presentation .node-qa-reading-item summary > .node-qa-question-text,
+html[data-theme='dark'] .p2d-presentation--focused .node-qa-reading-item summary > .node-qa-question-text {
+  color: #f4f4f4 !important;
+  -webkit-text-fill-color: #f4f4f4 !important;
+  background: transparent !important;
+  opacity: 1 !important;
+}
+
+html[data-theme='dark'] .p2d-presentation .node-qa-reading-item summary > .node-qa-number {
+  color: #001141 !important;
+  -webkit-text-fill-color: #001141 !important;
+  background: #a6c8ff !important;
+}
+/* === FASE 5.15 QA SAFARI CONTRASTE END === */
