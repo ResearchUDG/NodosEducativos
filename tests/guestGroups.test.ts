@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { guestFigurePath, guestPublicationDocument, guestPublicationPath, normalizeGuestSettings, normalizeGuestSlug } from '../src/lib/guestGroups';
+import { guestExportPath, guestFigurePath, guestPublicationDocument, guestPublicationPath, normalizeGuestSettings, normalizeGuestSlug } from '../src/lib/guestGroups';
 
 describe('Grupo de invitados — normalización y copia pública mínima', () => {
   it('genera una dirección legible sin acentos ni espacios', () => {
@@ -28,13 +28,15 @@ describe('Grupo de invitados — normalización y copia pública mínima', () =>
     expect('sourceRevisionId' in publicCopy).toBe(false);
   });
 
-  it('genera rutas individuales estables para esquema y figura', () => {
+  it('genera rutas individuales estables para esquema, figura y exportación', () => {
     expect(guestPublicationPath('filosofia-abierta', 'abc123')).toBe('/invitados/filosofia-abierta/esquema/abc123');
     expect(guestFigurePath('filosofia-abierta', 'abc123')).toBe('/invitados/filosofia-abierta/figura/abc123');
+    expect(guestExportPath('filosofia-abierta', 'abc123')).toBe('/invitados/filosofia-abierta/esquema/abc123/exportar');
   });
   it('rechaza identificadores de publicación que intenten alterar la ruta', () => {
     expect(() => guestPublicationPath('filosofia-abierta', '../privado')).toThrow();
     expect(() => guestFigurePath('filosofia-abierta', '')).toThrow();
+    expect(() => guestExportPath('filosofia-abierta', '../privado')).toThrow();
   });
   it('rechaza una publicación fuente estructuralmente corrupta', () => {
     expect(() => guestPublicationDocument({ title: 'Mapa', description: 'x', nodes: 'no', edges: [] })).toThrow();

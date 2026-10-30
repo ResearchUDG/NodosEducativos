@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Clipboard, Image, LayoutGrid } from 'lucide-react';
+import { Clipboard, Download, Image, LayoutGrid } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { GuestPublicLayout } from '../components/GuestPublicLayout';
 import { PublicationStudyReader, type StudyPublication } from '../components/PublicationStudyReader';
 import { explainError } from '../lib/errors';
 import {
-  guestFigurePath, guestPublicationShareUrl, openGuestPublication, resolveGuestGroup,
+  guestExportPath, guestFigurePath, guestPublicationShareUrl, openGuestPublication, resolveGuestGroup,
   type GuestGroupSettings,
 } from '../lib/guestGroups';
 
@@ -40,6 +40,7 @@ export function GuestPublishedViewer() {
   const headerActions = publication ? <>
     <Link className="button button-secondary" to={`/invitados/${slug}`}><LayoutGrid size={16}/> Todos los esquemas</Link>
     <Link className="button button-secondary" to={guestFigurePath(slug, id)}><Image size={16}/> Vista figura</Link>
+    <Link className="button button-secondary" to={guestExportPath(slug, id)}><Download size={16}/> Exportar imagen</Link>
     <button type="button" className="button button-secondary" onClick={() => void copyLink()}><Clipboard size={16}/> Copiar enlace</button>
   </> : null;
 

@@ -99,4 +99,28 @@ export function fitExportGraph(nodes:ExportNode[],pageWidth:number,pageHeight:nu
   const ox=(pageWidth-bw*scale)/2-minX*scale,oy=(pageHeight-bh*scale)/2-minY*scale;
   return {scale,nodes:nodes.map(n=>({...n,x:n.x*scale+ox,y:n.y*scale+oy,width:n.width*scale,height:n.height*scale,titleSize:n.titleSize*scale}))};
 }
-export function wrapTitle(title:string,maxChars:number){const words=title.trim().split(/\s+/).filter(Boolean);const lines:string[]=[];let current='';for(const word of words){const next=current?`${current} ${word}`:word;if(next.length>maxChars&&current){lines.push(current);current=word;}else current=next;}if(current)lines.push(current);return lines.slice(0,6);}
+export function wrapTitle(title:string,maxChars:number){
+  const paragraphs=title.replace(/\r\n?/g,'\n').split('\n');
+  const lines:string[]=[];
+  for(const paragraph of paragraphs){
+    const words=paragraph.trim().split(/\s+/).filter(Boolean);
+    if(!words.length){
+      if(lines.length && lines[lines.length-1]!=='' && lines.length<6) lines.push('');
+      continue;
+    }
+    let current='';
+    for(const word of words){
+      const next=current?`${current} ${word}`:word;
+      if(next.length>maxChars&&current){
+        lines.push(current);
+        if(lines.length>=6) return lines.slice(0,6);
+        current=word;
+      }else current=next;
+    }
+    if(current){
+      lines.push(current);
+      if(lines.length>=6) return lines.slice(0,6);
+    }
+  }
+  return lines.slice(0,6);
+}

@@ -8,6 +8,7 @@ describe('Fase 4B / 4B.1 · diseño visual y exportación',()=>{
  it('incluye formatos editoriales de exportación',()=>{expect(EXPORT_PRESETS.article.width).toBe(1600);expect(EXPORT_PRESETS.presentation.height).toBe(1080)});
  it('ajusta un grafo a la hoja sin mutar su fuente',()=>{const n=[{id:'a',x:100,y:100,width:200,height:100,title:'A',critical:false,category:'idea',accent:'#000',titleSize:14}];const fitted=fitExportGraph(n,1000,600,50);expect(fitted.nodes[0].x).toBeGreaterThanOrEqual(50);expect(n[0].x).toBe(100)});
  it('divide títulos largos en líneas compactas',()=>{expect(wrapTitle('uno dos tres cuatro cinco seis',8).length).toBeGreaterThan(1)});
+ it('respeta saltos de línea manuales del título',()=>{expect(wrapTitle('Primera línea\nSegunda línea',80)).toEqual(['Primera línea','Segunda línea'])});
  it('permite cuadros más pequeños y más grandes sin salir de límites seguros',()=>{
    const base={id:'n',type:'concept',position:{x:0,y:0},data:{title:'Nodo',description:'',category:'idea'}} as ConceptNode;
    expect(normalizeVisualNode({...base,style:{width:40,height:20}}).style).toMatchObject({width:140,height:70});

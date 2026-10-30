@@ -104,6 +104,13 @@ export function guestFigurePath(slug: string, publicationId: string): string {
   return `/invitados/${safeSlug}/figura/${encodeURIComponent(id)}`;
 }
 
+export function guestExportPath(slug: string, publicationId: string): string {
+  const safeSlug = normalizeGuestSlug(slug);
+  const id = publicationId.trim();
+  if (!id || id.includes('/')) throw new Error('Identificador de esquema público no válido.');
+  return `/invitados/${safeSlug}/esquema/${encodeURIComponent(id)}/exportar`;
+}
+
 function absoluteGuestHash(path: string): string {
   if (typeof window === 'undefined') return `#${path}`;
   return `${window.location.origin}${window.location.pathname}#${path}`;

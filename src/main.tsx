@@ -26,6 +26,7 @@ import { StudentDashboard } from './pages/StudentDashboard';
 import { GuestGroupPage } from './pages/GuestGroupPage';
 import { GuestPublishedViewer } from './pages/GuestPublishedViewer';
 import { GuestFigurePage } from './pages/GuestFigurePage';
+import { GuestExportStudio } from './pages/GuestExportStudio';
 import { ThemeProvider } from './lib/theme';
 import { ThemeSwitch } from './components/ThemeSwitch';
 
@@ -57,6 +58,7 @@ function GuestApplication() {
     <Route path="/invitados/:slug" element={<GuestGroupPage/>}/>
     <Route path="/invitados/:slug/publicacion/:id" element={<GuestPublishedViewer/>}/>
     <Route path="/invitados/:slug/esquema/:id" element={<GuestPublishedViewer/>}/>
+    <Route path="/invitados/:slug/esquema/:id/exportar" element={<GuestExportStudio/>}/>
     <Route path="/invitados/:slug/figura/:id" element={<GuestFigurePage/>}/>
   </Routes></HashRouter>;
 }

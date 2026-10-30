@@ -1920,3 +1920,16 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   input, textarea, select { font-size: 16px !important; }
 }
 /* === FASE 5.14 ESCALA IOS END === */
+
+/* === FASE 5.19 SALTOS DE LINEA EN TITULOS BEGIN === */
+/* Los títulos de nodo conservan los saltos manuales introducidos con Enter. */
+.concept .visual-node-content > strong,
+.visual-node .visual-node-content > strong,
+.p2d-node > strong,
+.p2d-inspector-head h2,
+.p2d-route-track b,
+.guest-figure-node > strong {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+/* === FASE 5.19 SALTOS DE LINEA EN TITULOS END === */
